@@ -6,30 +6,13 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <mdns.h>
+#include "status_led.h"
+#include "defines.h"
 
-#define bit_mask(gpio) (1ull << gpio)
 
-#define NETWORK_NAME "V5 Debug Board"
-#define NETWORK_PASS "ch@ngem3!"
-#define MDNS_NAME "debug"
 
 void on_wifi_connect(void* event_handler_arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
 {
-
-}
-
-void init_gpio()
-{
-    // Status LED (GPIO 4)
-    gpio_config_t stat_led_cfg = {
-        .pin_bit_mask = bit_mask(GPIO_NUM_4),
-        .mode = GPIO_MODE_OUTPUT,
-        .pull_up_en = false,
-        .pull_down_en = false,
-        .intr_type = GPIO_INTR_DISABLE
-
-    };
-    gpio_config(&stat_led_cfg);
 
 }
 
@@ -79,13 +62,16 @@ void init_mdns()
     mdns_hostname_set(MDNS_NAME);
 
     //add websocket service
-    mdns_service_add(NULL, "_http", "_udp", 8765, NULL, 0);
+    // ...may not be needed?
+    mdns_service_add(NULL, "_http", "_tcp", 8765, NULL, 0);
 
     //set default instance
     mdns_instance_name_set("VEX V5 Debug Board");
 
     
 }
+
+bool setup_finished = false;
 
 void app_main(void)
 {
@@ -99,7 +85,7 @@ void app_main(void)
     printf("NVS Initialized.\n");
 
     printf("Initializing GPIO...\n");
-    init_gpio();
+    status_led_init(GPIO_NUM_4);
     printf("GPIO Initialized.\n");
 
     printf("Initializing WiFi AP...\n");
@@ -111,15 +97,24 @@ void app_main(void)
     printf("MDNS Initialized.\n");
 
     printf("Finished Initialization.\n");
+    setup_finished = true;
 
+    delay(5000);
+    status_led_set(IDLE);
+    delay(5000);
+    status_led_set(CONNECTED);
+    delay(5000);
+    status_led_set(FAULTED);
+    delay(5000);
+    status_led_set(CONNECTED);
+    delay(5000);
+    status_led_signal_wifi_conn();
+
+    
     while(true)
     {
-        gpio_set_level(GPIO_NUM_4, 1);
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-        gpio_set_level(GPIO_NUM_4, 0);
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        delay(1000);
     }
 
     
-
 }
