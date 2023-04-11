@@ -6,9 +6,12 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <mdns.h>
+#include <esp_log.h>
+#include <foxglove-ws.h>
 #include "status_led.h"
 #include "defines.h"
 
+static const char* TAG = "main";
 
 
 void on_wifi_connect(void* event_handler_arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
@@ -75,28 +78,30 @@ bool setup_finished = false;
 
 void app_main(void)
 {
-    printf("Initializing NVS...\n");
+    
+    ESP_LOGI(TAG, "Initializing NVS...");
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
       ESP_ERROR_CHECK(nvs_flash_erase());
       ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK(ret);
-    printf("NVS Initialized.\n");
 
-    printf("Initializing GPIO...\n");
+    ESP_LOGI(TAG, "Initializing GPIO...");
     status_led_init(GPIO_NUM_4);
-    printf("GPIO Initialized.\n");
 
-    printf("Initializing WiFi AP...\n");
+    ESP_LOGI(TAG, "Initializing WiFi AP...");
     init_wifi_ap();
-    printf("WiFi AP Initialized.\n");
     
-    printf("Initializing MDNS...\n");
+    ESP_LOGI(TAG, "Initializing MDNS...");
     init_mdns();
-    printf("MDNS Initialized.\n");
 
-    printf("Finished Initialization.\n");
+    ESP_LOGI(TAG, "Initializing foxglove-ws...");
+
+    httpd_handle_t server_handle = NULL;
+    foxglove_init_ws(&server_handle);
+
+    ESP_LOGI(TAG, "Finished Initialization.");
     setup_finished = true;
 
     delay(5000);
@@ -111,8 +116,12 @@ void app_main(void)
     status_led_signal_wifi_conn();
 
     
+
+    
     while(true)
     {
+        
+
         delay(1000);
     }
 
