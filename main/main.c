@@ -8,6 +8,7 @@
 #include <mdns.h>
 #include <esp_log.h>
 #include "esp_http_server.h"
+#include <HTTPLog.h>
 
 // #include <foxglove-ws.h>
 
@@ -23,67 +24,6 @@ void on_wifi_connect(void *event_handler_arg, esp_event_base_t event_base, int32
     status_led_signal_wifi_conn();
 }
 
-esp_err_t get_handler(httpd_req_t *req)
-{
-    /* Send a simple response */
-    ESP_LOGI(TAG, "Got GET Request");
-    const char resp[] = "This is richie's GET at long last!!!!!!";
-    httpd_resp_send(req, resp, HTTPD_RESP_USE_STRLEN);
-    return ESP_OK;
-}
-
-esp_err_t err404_handler(httpd_req_t *req)
-{
-    /* Send a simple response */
-    ESP_LOGI(TAG, "Got 404ed");
-    httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "404 not found.");
-    return ESP_FAIL;
-}
-
-/* URI handler structure for GET /uri */
-httpd_uri_t uri_get = {
-    .uri = "/uri",
-    .method = HTTP_GET,
-    .handler = get_handler,
-    .user_ctx = NULL,
-    .is_websocket = false,
-    .handle_ws_control_frames = false,
-    .supported_subprotocol = NULL,
-    };
-
-/* Function for starting the webserver */
-httpd_handle_t start_webserver(uint16_t port)
-{
-    /* Generate default configuration */
-    httpd_config_t config = HTTPD_DEFAULT_CONFIG();
-    config.server_port = port;
-
-    ESP_LOGI(TAG, "Starting server on port: '%d'", config.server_port);
-
-    /* Empty handle to esp_http_server */
-    httpd_handle_t server = NULL;
-
-    /* Start the httpd server */
-    if (httpd_start(&server, &config) == ESP_OK)
-    {
-        /* Register URI handlers */
-        ESP_ERROR_CHECK(httpd_register_uri_handler(server, &uri_get));
-        // ESP_ERROR_CHECK(httpd_register_err_handler(server, HTTPD_404_NOT_FOUND, &err404_handler));
-        // httpd_register_uri_handler(server, &uri_post);
-    }
-    /* If server failed to start, handle will be NULL */
-    return server;
-}
-
-/* Function for stopping the webserver */
-void stop_webserver(httpd_handle_t server)
-{
-    if (server)
-    {
-        /* Stop the httpd server */
-        httpd_stop(server);
-    }
-}
 
 void init_wifi_ap()
 {
@@ -168,11 +108,11 @@ void app_main(void)
     init_mdns();
 
     ESP_LOGI(TAG, "Initializing http server");
-    httpd_handle_t server = start_webserver(80);
-    ESP_ERROR_CHECK(mdns_service_add(NULL, "_http", "_tcp", 80, NULL, 0));
-    ESP_ERROR_CHECK(mdns_service_instance_name_set("_http", "_tcp", "VexDebugWeb"));
 
-    ESP_LOGI(TAG, "Webserver Status: %s", (server == NULL) ? "bad" : "good");
+    httpd_handle_t server = http_log_start(80);
+    
+    http_log_raw("GPIO, WIFI AP, MDNS, HTTP Log started successfully\n");
+
 
 
     ESP_LOGI(TAG, "Finished Initialization.");
@@ -194,5 +134,5 @@ void app_main(void)
 
         delay(1000);
     }
-    stop_webserver(server);
+    http_log_stop(server);
 }
