@@ -10,10 +10,15 @@ static const char *TAG = "web_log";
 
 #define MUX_TIMEOUT (500 / portTICK_PERIOD_MS)
 
+/// @brief how much to grow the log by each time
 static const size_t log_grow_amt = 256;
+/// @brief  initial log capacity
 static const size_t log_initial_cap = 256;
 
-static const size_t max_log_length = 8192; ///< maximum size of log to avoid taking too much memory TODO scroll log rather than just cutoff
+/// @brief maximum size of log to avoid taking too much memory TODO scroll log rather than just cutoff
+static const size_t max_log_length = 8192;
+
+/// @brief logger structure. use mux to control reads and writes
 typedef struct
 {
     SemaphoreHandle_t mux;
@@ -22,9 +27,8 @@ typedef struct
     int cap;
 } log_internals;
 
-log_internals web_log;
-
-log_internals create_log_internal()
+/// @brief creates a valid log
+log_internals create_log_internals()
 {
     SemaphoreHandle_t mux = xSemaphoreCreateMutex();
 
@@ -35,8 +39,21 @@ log_internals create_log_internal()
         .cap = log_initial_cap};
     return li;
 }
+void destroy_log_internals(log_internals *li)
+{
+    if (xSemaphoreTake(li->mux, MUX_TIMEOUT))
+    {
+        // TODO: does semaphore have to be deleted?
+        free(li->str);
+        li->cap = 0;
+        li->len = 0;
+    } else {
+        ESP_LOGE(TAG, "Someone holding onto web_log semaphore. programmer error");
+    }
+}
 
-
+/// @brief the log that the general log uses
+static log_internals web_log;
 
 /// @brief appends a string to the log with all the safeties. External people should use log, logf type functions. Implementation of those functions call this;
 /// @param str null terminated string to add to log. can be arbitrary html. Don't abuse that
@@ -46,19 +63,16 @@ static bool append_log(const char *str)
     {
 
         int length = strlen(str);
-        ESP_LOGI(TAG, "New log entry len: %d. Current log len: %d/%d", length, web_log.len,web_log.cap);
         int new_log_size = web_log.len + length;
 
         if (new_log_size > max_log_length)
         {
-            ESP_LOGI(TAG, "log too big");
             xSemaphoreGive(web_log.mux);
             return false;
         }
         // resize if needed
         if (new_log_size > web_log.cap)
         {
-            ESP_LOGI(TAG, "Growing log buffer");
             web_log.str = realloc(web_log.str, web_log.cap + log_grow_amt);
             web_log.cap = web_log.cap + log_grow_amt;
             if (web_log.str == NULL)
@@ -69,13 +83,8 @@ static bool append_log(const char *str)
                 return false;
             }
         }
-        // strncpy((web_log.str+web_log.len), str, length);
-        memcpy(web_log.str + web_log.len, str, length+1); // +1 for that null terminator
-        // strncat(web_log.str, str, length);
+        memcpy(web_log.str + web_log.len, str, length + 1); // +1 for that null terminator
         web_log.len = new_log_size;
-
-        ESP_LOGI(TAG, "After log entry  Current log len: %d/%d", web_log.len,web_log.cap);
-
 
         xSemaphoreGive(web_log.mux);
     }
@@ -83,17 +92,15 @@ static bool append_log(const char *str)
 }
 
 
-void http_log_raw(const char * str){
+void http_log_raw(const char *str)
+{
     append_log(str);
 }
-
-
 
 esp_err_t get_handler(httpd_req_t *req)
 {
     if (xSemaphoreTake(web_log.mux, MUX_TIMEOUT))
     {
-        ESP_LOGI(TAG, "Sending HTTP Log: %s", web_log.str);
 
         /* Send the log */
         httpd_resp_send(req, web_log.str, HTTPD_RESP_USE_STRLEN);
@@ -103,15 +110,14 @@ esp_err_t get_handler(httpd_req_t *req)
     }
     /* Send an error response */
     const char resp[] = "<h1> Couldn't aquire log mux </h1>";
-    httpd_resp_send(req, resp, HTTPD_RESP_USE_STRLEN);
+    httpd_resp_send(req, resp, web_log.len); // HTTPD_RESP_USE_STRLEN
     return ESP_OK;
 }
 
-esp_err_t err404_handler(httpd_req_t *req)
+esp_err_t http_404_error_handler(httpd_req_t *req, httpd_err_code_t err)
 {
-    /* Send a simple response */
-    ESP_LOGI(TAG, "Got 404ed");
-    httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "404 not found.");
+    httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "404 not found. Try <a href=\"http://debug.local/log\">debug.local/log</a>");
+
     return ESP_FAIL;
 }
 
@@ -140,7 +146,7 @@ httpd_handle_t http_log_start(uint16_t port)
     ESP_LOGI(TAG, "Starting http log server on port: '%d'", config.server_port);
 
     /* Initialize log */
-    web_log = create_log_internal();
+    web_log = create_log_internals();
     append_log("<h1> Web Log </h1>\n\n<pre>");
 
     /* Empty handle to esp_http_server */
@@ -151,7 +157,7 @@ httpd_handle_t http_log_start(uint16_t port)
     {
         /* Register URI handlers */
         ESP_ERROR_CHECK(httpd_register_uri_handler(server, &uri_get));
-        // ESP_ERROR_CHECK(httpd_register_err_handler(server, HTTPD_404_NOT_FOUND, &err404_handler));
+        ESP_ERROR_CHECK(httpd_register_err_handler(server, HTTPD_404_NOT_FOUND, &http_404_error_handler));
         // httpd_register_uri_handler(server, &uri_post);
     }
     ESP_LOGI(TAG, "Webserver Status: %s", (server == NULL) ? "bad" : "good");
@@ -172,6 +178,7 @@ void http_log_stop(httpd_handle_t server)
 {
     if (server)
     {
+        destroy_log_internals(&web_log);
         /* Stop the httpd server */
         httpd_stop(server);
     }
