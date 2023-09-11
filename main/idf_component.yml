@@ -1,5 +1,6 @@
 ## IDF Component Manager Manifest File
 dependencies:
+  augtons/freertos-cpp: "^1.0.3"
   espressif/mdns: "^1.0.7"
   ## Required IDF version
   idf:

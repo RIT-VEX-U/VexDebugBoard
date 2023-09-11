@@ -8,7 +8,11 @@
 
 typedef enum
 {
-    OFF, SETUP, IDLE, CONNECTED, FAULTED
+    OFF, // No Light
+    SETUP,  // 1 Second Long Pulse
+    IDLE,  // 250ms Quicl Pulso
+    CONNECTED, // Solid
+    FAULTED // Triple Flash, Wait
 } status_led_options_t;
 
 /**
