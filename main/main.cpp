@@ -11,6 +11,7 @@
 #include <HTTPLog.h>
 
 // #include <foxglove-ws.h>
+#include <foxglove-ws.h>
 
 #include "status_led.h"
 #include "defines.h"

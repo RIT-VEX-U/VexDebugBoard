@@ -11,6 +11,8 @@
 #include "common.hpp"
 #include "parameter.hpp"
 
+#include <websocketer.hpp>
+
 namespace foxglove {
 
 constexpr size_t DEFAULT_SEND_BUFFER_LIMIT_BYTES = 10000000UL;  // 10 MB
@@ -76,9 +78,9 @@ struct ServerHandlers {
   std::function<void(const std::string&, uint32_t, ConnectionHandle)> fetchAssetHandler;
 };
 
-template <typename ConnectionHandle>
 class ServerInterface {
 public:
+  using ConnectionHandle = websocketer::connection_hdl;
   virtual ~ServerInterface() {}
   virtual void start(const std::string& host, uint16_t port) = 0;
   virtual void stop() = 0;
