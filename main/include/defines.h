@@ -9,6 +9,9 @@
 //"ch@ngem3!"
 #define MDNS_NAME "debug"
 
-extern bool setup_finished;
+
+
+
 
 #endif
+

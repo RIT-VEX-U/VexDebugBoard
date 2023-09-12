@@ -1,8 +1,6 @@
 #pragma once
 
 #include <nlohmann/json.hpp>
-#include <websocketpp/config/asio.hpp>
-#include <websocketpp/server.hpp>
 
 #include <algorithm>
 #include <chrono>
@@ -68,9 +66,8 @@ using json = nlohmann::json;
 using ConnHandle = websocketpp::connection_hdl;
 using OpCode = websocketpp::frame::opcode::value;
 
-static const websocketpp::log::level APP = websocketpp::log::alevel::app;
-static const websocketpp::log::level WARNING = websocketpp::log::elevel::warn;
-static const websocketpp::log::level RECOVERABLE = websocketpp::log::elevel::rerror;
+
+
 
 /// Map of required capability by client operation (text).
 const std::unordered_map<std::string, std::string> CAPABILITY_BY_CLIENT_OPERATION = {

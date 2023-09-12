@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "foxglove-ws.h"
 
+
 static const char* TAG = "foxglove_ws";
 
 esp_err_t foxglove_ws_handler(httpd_req_t *r)
@@ -42,3 +43,4 @@ void foxglove_end_ws(void* arg_server)
     httpd_handle_t* server = (httpd_handle_t*)arg_server;
     httpd_stop(*server);
 }
+

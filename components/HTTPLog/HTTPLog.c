@@ -92,7 +92,7 @@ static bool append_log(const char *str)
 }
 
 
-void http_log_raw(const char *str)
+void http_log_raw(const char * str)
 {
     append_log(str);
 }

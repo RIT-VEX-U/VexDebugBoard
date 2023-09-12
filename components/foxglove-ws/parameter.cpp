@@ -1,5 +1,6 @@
 #include <foxglove/websocket/parameter.hpp>
 
+
 namespace foxglove {
 
 ParameterValue::ParameterValue()

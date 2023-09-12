@@ -6,6 +6,11 @@
 #include "freertos/task.h"
 #include "freertos/semphr.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 typedef enum
 {
     OFF, // No Light
@@ -43,4 +48,10 @@ void status_led_set(status_led_options_t _opt);
  */
 void status_led_signal_wifi_conn();
 
+#ifdef __cplusplus
+}
 #endif
+
+#endif
+
+
