@@ -1,7 +1,7 @@
 #include "esp_http_server.h"
 
 /// @brief send raw string to http log
-/// @param str null terminated string to write to log
+/// @param str null terminated string to write to log. user of this function is responsible for deallocating str
 void http_log_raw(const char * str);
 
 /// @brief begin the http log that can be accessed at hostname.local/log
