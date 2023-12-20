@@ -72,7 +72,7 @@ namespace foxglove
   using json = nlohmann::json;
 
   using ConnHandle = websocketer::connection_hdl;
-  using OpCode = websocketer::OpCode::value;
+  using OpCode = websocketer::OpCode;
 
   static const char *APP = "APP";
   static const char *WARNING = "WARNING";
@@ -110,7 +110,7 @@ namespace foxglove
   {
   public:
     using ServerType = websocketer::Server; // websocketpp::server;
-    // using ConnectionType = websocketpp::connection<ServerConfiguration>;
+    using ConnectionType = websocketer::Connection;
     using MessagePtr = typename websocketer::Server::message_ptr;
     // using Tcp = websocketpp::lib::asio::ip::tcp;
 
@@ -148,10 +148,10 @@ namespace foxglove
     uint16_t getPort() override;
     std::string remoteEndpointString(ConnHandle clientHandle) override;
 
-    typename ServerType::endpoint_type &getEndpoint() &
-    {
-      return _server;
-    }
+    // typename ServerType::endpoint_type &getEndpoint() &
+    // {
+    // return _server;
+    // }
 
   private:
     struct ClientInfo
@@ -249,9 +249,10 @@ namespace foxglove
     if (ec)
     {
       ESP_LOGE(WS_TAG, "Failed to initialize websocket server");
-      abort();
+      websocketer::abort_ws();
     }
 
+    // TODO CHECKBACK: figure all this stuff out. think it was all logging stuff
     // _server.clear_access_channels(websocketpp::log::alevel::all);
     // _server.set_access_channels(APP);
     // _server.set_tcp_pre_init_handler(std::bind(&Server::socketInit, this, std::placeholders::_1));
@@ -259,26 +260,27 @@ namespace foxglove
     // _server.set_validate_handler(std::bind(&Server::validateConnection, this, std::placeholders::_1));
     // _server.set_open_handler(std::bind(&Server::handleConnectionOpened, this, std::placeholders::_1));
     // _server.set_close_handler(
-        std::bind(&Server::handleConnectionClosed, this, std::placeholders::_1));
-        // _server.set_message_handler(
-        // std::bind(&Server::handleMessage, this, std::placeholders::_1, std::placeholders::_2));
-        // _server.set_reuse_addr(true);
-        // _server.set_listen_backlog(128);
+    // std::bind(&Server::handleConnectionClosed, this, std::placeholders::_1));
+    // _server.set_message_handler(
+    // std::bind(&Server::handleMessage, this, std::placeholders::_1, std::placeholders::_2));
+    // _server.set_reuse_addr(true);
+    // _server.set_listen_backlog(128);
 
-        // Callback queue for handling client requests.
-        _handlerCallbackQueue = std::make_unique<CallbackQueue>(_logger, /*numThreads=*/1ul);
+    // Callback queue for handling client requests.
+    _handlerCallbackQueue = std::make_unique<CallbackQueue>(_logger, /*numThreads=*/1ul);
   }
 
   inline Server::~Server() {}
 
   inline void Server::socketInit(ConnHandle hdl)
   {
-    websocketer::error_code ec;
-    _server.get_con_from_hdl(hdl)->get_raw_socket().set_option(Tcp::no_delay(true), ec);
-    if (ec)
-    {
-      _server.get_elog().write(RECOVERABLE, "Failed to set TCP_NODELAY");
-    }
+    // TODO CHECKBACK
+    // websocketer::error_code ec;
+    // _server.get_con_from_hdl(hdl)->get_raw_socket().set_option(Tcp::no_delay(true), ec);
+    // if (ec)
+    // {
+    // _server.get_elog().write(RECOVERABLE, "Failed to set TCP_NODELAY");
+    // }
   }
 
   inline bool Server::validateConnection(ConnHandle hdl)
@@ -429,19 +431,19 @@ namespace foxglove
       if (_connectionGraph.subscriptionCount == 0 && _handlers.subscribeConnectionGraphHandler)
       {
         _server.get_alog().write(APP, "Unsubscribing from connection graph updates.");
-        try
-        {
-          _handlers.subscribeConnectionGraphHandler(false);
-        }
-        catch (const std::exception &ex)
-        {
-          _server.get_elog().write(
-              RECOVERABLE, "Exception caught when closing connection: " + std::string(ex.what()));
-        }
-        catch (...)
-        {
-          _server.get_elog().write(RECOVERABLE, "Exception caught when closing connection");
-        }
+        // try
+        // {
+        _handlers.subscribeConnectionGraphHandler(false);
+        // }
+        // catch (const std::exception &ex)
+        // {
+        // _server.get_elog().write(
+        // RECOVERABLE, "Exception caught when closing connection: " + std::string(ex.what()));
+        // }
+        // catch (...)
+        // {
+        // // _server.get_elog().write(RECOVERABLE, "Exception caught when closing connection");
+        // }
       }
     }
 
@@ -460,7 +462,7 @@ namespace foxglove
     }
 
     _server.get_alog().write(APP, "Stopping WebSocket server");
-    websocketer::lib::error_code ec;
+    websocketer::error_code ec;
 
     _server.stop_perpetual();
 
@@ -495,7 +497,7 @@ namespace foxglove
       // Iterate over all client connections and start the close connection handshake
       for (const auto &connection : connections)
       {
-        connection->close(websocketpp::close::status::going_away, "server shutdown", ec);
+        connection->close(websocketer::status::going_away, "server shutdown", ec);
         if (ec)
         {
           _server.get_elog().write(RECOVERABLE, "Failed to close connection: " + ec.message());
@@ -547,22 +549,23 @@ namespace foxglove
   {
     if (_serverThread)
     {
-      throw std::runtime_error("Server already started");
+      ESP_LOGE(WS_TAG, "Server already started");
+      websocketer::abort_ws();
     }
 
-    websocketpp::lib::error_code ec;
+    websocketer::error_code ec;
 
     _server.listen(host, std::to_string(port), ec);
     if (ec)
     {
-      throw std::runtime_error("Failed to listen on port " + std::to_string(port) + ": " +
-                               ec.message());
+      ESP_LOGE(WS_TAG,"Failed to listen on port %s: %s", std::to_string(port).c_str(), ec.message().c_str());
+      websocketer::abort_ws();
     }
 
     _server.start_accept(ec);
     if (ec)
     {
-      throw std::runtime_error("Failed to start accepting connections: " + ec.message());
+      ESP_LOGE(WS_TAG, "Failed to start accepting connections: %s", ec.message().c_str());
     }
 
     _serverThread = std::make_unique<std::thread>([this]()
@@ -573,14 +576,16 @@ namespace foxglove
 
     if (!_server.is_listening())
     {
-      throw std::runtime_error("WebSocket server failed to listen on port " + std::to_string(port));
+      ESP_LOGE(WS_TAG, "WebSocket server failed to listen on port %s", std::to_string(port).c_str());
+      websocketer::abort_ws();
     }
 
-    websocketpp::lib::asio::error_code asioEc;
+    websocketer::error_code asioEc;
     auto endpoint = _server.get_local_endpoint(asioEc);
     if (asioEc)
     {
-      throw std::runtime_error("Failed to resolve the local endpoint: " + ec.message());
+      ESP_LOGE(WS_TAG, "Failed to resolve the local endpoint: %s", ec.message().c_str());
+      websocketer::abort_ws();
     }
 
     const std::string protocol = _options.useTls ? "wss" : "ws";
@@ -612,7 +617,7 @@ namespace foxglove
   {
     const std::string endpoint = remoteEndpointString(clientHandle);
     const std::string logMessage = endpoint + ": " + message;
-    const auto logLevel = StatusLevelToLogLevel(level);
+    const auto logLevel = "GENERIC LOGLEVEL"; // StatusLevelToLogLevel(level);
     auto logger = level == StatusLevel::Info ? _server.get_alog() : _server.get_elog();
     logger.write(logLevel, logMessage);
 
@@ -625,12 +630,12 @@ namespace foxglove
 
   inline void Server::handleMessage(ConnHandle hdl, MessagePtr msg)
   {
-    const OpCode op = msg->get_opcode();
+    const websocketer::OpCode op = msg->get_opcode();
     _handlerCallbackQueue->addCallback([this, hdl, msg, op]()
                                        {
-      if (op == OpCode::TEXT) {
+      if (op == OpCode::value::TEXT) {
         handleTextMessage(hdl, msg);
-      } else if (op == OpCode::BINARY) {
+      } else if (op == OpCode::value::BINARY) {
         handleBinaryMessage(hdl, msg);
       } });
   }
@@ -1100,7 +1105,8 @@ namespace foxglove
     auto endpoint = _server.get_local_endpoint(ec);
     if (ec)
     {
-      throw std::runtime_error("Server not listening on any port. Has it been started before?");
+      ESP_LOGE(WS_TAG, "Server not listening on any port. Has it been started before?");
+      websocketer::abort_ws();
     }
     return endpoint.port();
   }
@@ -1236,20 +1242,20 @@ namespace foxglove
         _server.get_alog().write(APP, "Unsubscribing from parameter '" + param + "'.");
       }
 
-      try
-      {
-        _handlers.parameterSubscriptionHandler(paramsToUnsubscribe,
-                                               ParameterSubscriptionOperation::UNSUBSCRIBE, hdl);
-      }
-      catch (const std::exception &e)
-      {
-        sendStatusAndLogMsg(hdl, StatusLevel::Error, e.what());
-      }
-      catch (...)
-      {
-        sendStatusAndLogMsg(hdl, StatusLevel::Error,
-                            "Failed to unsubscribe from one more more parameters");
-      }
+      // try
+      // {
+      _handlers.parameterSubscriptionHandler(paramsToUnsubscribe,
+                                             ParameterSubscriptionOperation::UNSUBSCRIBE, hdl);
+      // }
+      // catch (const std::exception &e)
+      // {
+      // sendStatusAndLogMsg(hdl, StatusLevel::Error, e.what());
+      // }
+      // catch (...)
+      // {
+      // sendStatusAndLogMsg(hdl, StatusLevel::Error,
+      // "Failed to unsubscribe from one more more parameters");
+      // }
     }
   }
 
@@ -1284,7 +1290,9 @@ namespace foxglove
     case FETCH_ASSET:
       return bool(_handlers.fetchAssetHandler);
     default:
-      throw std::runtime_error("Unknown operation: " + std::to_string(op));
+      // throw std::runtime_error("Unknown operation: " + std::to_string(op));
+      ESP_LOGE(WS_TAG, "Unknown Operation %ld", op);
+      websocketer::abort_ws();
     }
   }
 
@@ -1612,7 +1620,7 @@ namespace foxglove
     auto message = con->get_message(OpCode::BINARY, messageSize);
 
     const auto op = BinaryOpcode::FETCH_ASSET_RESPONSE;
-    message->append_payload(&op, 1);
+    message->append_payload((const uint8_t *)&op, 1);
 
     std::array<uint8_t, 4> uint32Data;
     foxglove::WriteUint32LE(uint32Data.data(), response.requestId);
@@ -1623,7 +1631,7 @@ namespace foxglove
 
     foxglove::WriteUint32LE(uint32Data.data(), response.errorMessage.size());
     message->append_payload(uint32Data.data(), uint32Data.size());
-    message->append_payload(response.errorMessage.data(), errMsgSize);
+    message->append_payload((const uint8_t *)response.errorMessage.data(), errMsgSize);
 
     message->append_payload(response.data.data(), dataSize);
     con->send(message);
