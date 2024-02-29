@@ -3,9 +3,32 @@
 
 static const char* TAG = "foxglove_ws";
 
+/**
+ * Handles sending data over the socket
+*/
+void foxglove_ws_send(uint8_t *data, size_t len)
+{
+
+}
+
+/**
+ * Handles received data over the socket
+*/
 esp_err_t foxglove_ws_handler(httpd_req_t *r)
 {
-    return 0;
+    if(r->method == HTTP_GET)
+    {
+        ESP_LOGI(TAG, "WS Handshake Complete");
+        return ESP_OK;
+    }
+
+    httpd_ws_frame_t packet;
+    uint8_t *buf = NULL;
+
+    memset(*packet, 0, sizeof(https_ws_frame_t));
+    packet.type = HTTPD_WS_TYPE_TEXT;
+
+    return ESP_OK;
 }
 
 static const httpd_uri_t ws = 
@@ -17,7 +40,7 @@ static const httpd_uri_t ws =
     .is_websocket = true
 };
 
-void foxglove_init_ws(void* arg_server)
+void foxglove_init(void* arg_server)
 {
     httpd_handle_t* server = (httpd_handle_t*)arg_server;
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
@@ -37,7 +60,7 @@ void foxglove_init_ws(void* arg_server)
     }
 }
 
-void foxglove_end_ws(void* arg_server)
+void foxglove_end(void* arg_server)
 {
     httpd_handle_t* server = (httpd_handle_t*)arg_server;
     httpd_stop(*server);

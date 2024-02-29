@@ -7,7 +7,7 @@
 #include <freertos/task.h>
 #include <mdns.h>
 #include <esp_log.h>
-#include <foxglove-ws.h>
+#include <foxglove_ws.h>
 #include "status_led.h"
 #include "defines.h"
 
@@ -99,7 +99,7 @@ void app_main(void)
     ESP_LOGI(TAG, "Initializing foxglove-ws...");
 
     httpd_handle_t server_handle = NULL;
-    foxglove_init_ws(&server_handle);
+    foxglove_init(&server_handle);
 
     ESP_LOGI(TAG, "Finished Initialization.");
     setup_finished = true;
