@@ -1,7 +1,8 @@
 #include "defines.h"
-#include "driver/uart.h"
 #include "status_led.h"
+#include <WebLog.h>
 #include <driver/gpio.h>
+#include <driver/uart.h>
 #include <esp_log.h>
 #include <esp_wifi.h>
 #include <foxglove-ws.h>
@@ -17,7 +18,7 @@ static const char *TAG = "main";
 
 void on_wifi_connect(void *event_handler_arg, esp_event_base_t event_base,
                      int32_t event_id, void *event_data) {
-  ESP_LOGI("Wifi Connected");
+  ESP_LOGI(TAG, "Wifi Connected");
 }
 
 void init_wifi_ap() {
@@ -70,6 +71,11 @@ void init_mdns() {
 
   // set default instance
   ESP_ERROR_CHECK(mdns_instance_name_set("VEX V5 Debug Board"));
+
+  httpd_handle_t server_handle = http_log_start(80);
+  if (server_handle == NULL) {
+    ESP_LOGE(TAG, "Failed to initialize log endpoint");
+  }
 }
 
 bool setup_finished = false;
@@ -107,7 +113,6 @@ static void echo_send(const int port, const char *str, uint8_t length) {
   int got = uart_write_bytes(port, str, length);
   if (got != length) {
     ESP_LOGE(TAG, "Send data critical failure.. Tried %d got %d", length, got);
-    // add your code to handle sending failure here
   }
 }
 void init_serial() {
@@ -164,8 +169,6 @@ void app_main(void) {
 
   ESP_LOGI(TAG, "Initializing Serial Connection...");
   init_serial();
-
-  echo_send(BRAIN_UART, "Start RS485 UART test.\r\n", 24);
 
   // ESP_LOGI(TAG, "Initializing foxglove-ws...");
 
