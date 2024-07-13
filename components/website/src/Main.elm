@@ -1,6 +1,6 @@
 module Main exposing (main)
 
-import Browser
+import Browser exposing (Document)
 import Configuration exposing (Configuration, viewWifi)
 import Element exposing (Element, column, el, fill, fillPortion, height, px, rgb255, row, shrink, text, width)
 import Element.Background as Background
@@ -8,9 +8,9 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Element.Region as Region
-import General exposing (pallete)
 import Html exposing (Html, button, div)
 import Html.Events exposing (onClick)
+import UiUtil exposing (pallete)
 
 
 type alias Model =
@@ -64,14 +64,14 @@ type Msg
     | UpdateConfig Configuration
 
 
-update : Msg -> Model -> Model
+update : Msg -> Model -> ( Model, Cmd msg )
 update msg model =
     case msg of
         Goto p ->
-            { model | page = p }
+            ( { model | page = p }, Cmd.none )
 
         UpdateConfig cfg ->
-            { model | config = cfg }
+            ( { model | config = cfg }, Cmd.none )
 
 
 h1size : number
@@ -201,15 +201,20 @@ options =
     { options = [ Element.focusStyle focusStyle ] }
 
 
-view : Model -> Html Msg
+view : Model -> Document Msg
 view model =
-    Element.layoutWith options [ Font.family [ Font.monospace ] ] (page model)
+    let
+        body =
+            Element.layoutWith options [ Font.family [ Font.monospace ] ] (page model)
+    in
+    { title = "Vex Debug Board", body = [ body ] }
 
 
 main : Program () Model Msg
 main =
-    Browser.sandbox
-        { init = initialModel
+    Browser.document
+        { init = \_ -> ( initialModel, Cmd.none )
         , view = view
         , update = update
+        , subscriptions = \_ -> Sub.none
         }

@@ -3,7 +3,7 @@ module Configuration exposing (..)
 import Element exposing (Element, text)
 import Element.Font as Font
 import Element.Input as Input
-import General exposing (colrows, pallete, textModifiedLabel)
+import UiUtil exposing (colrows, pallete, textModifiedLabel)
 
 
 type WifiMode

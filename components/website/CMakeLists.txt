@@ -1,3 +1,8 @@
+# Genreated source files
+set(index_html_c ${CMAKE_CURRENT_BINARY_DIR}/index_html.c)
+set(elm_js_c ${CMAKE_CURRENT_BINARY_DIR}/elm_js.c)
+idf_component_register(SRCS ${index_html_c} ${elm_js_c} INCLUDE_DIRS "include")
+
 # Actual Sources
 set(index_html ${CMAKE_CURRENT_SOURCE_DIR}/src/index.html)
 set(ELM_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
@@ -8,13 +13,9 @@ set(elm_js ${CMAKE_CURRENT_BINARY_DIR}/elm.js)
 set(elm_min_js ${CMAKE_CURRENT_BINARY_DIR}/elm.min.js)
 set(elm_min_js_gz ${CMAKE_CURRENT_BINARY_DIR}/elm.min.js.gz)
 
-# Genreated source files
-set(index_html_c ${CMAKE_CURRENT_BINARY_DIR}/index_html.c)
-set(elm_js_c ${CMAKE_CURRENT_BINARY_DIR}/elm_js.c)
 
 set(ELM_OPT_FLAG --optimize)
 
-idf_component_register(SRCS ${index_html_c} ${elm_js_c} INCLUDE_DIRS "include")
 
 # Embed index.html into binary
 add_custom_command(OUTPUT ${index_html_c} 

@@ -1,4 +1,4 @@
-module General exposing (..)
+module UiUtil exposing (..)
 
 import Element exposing (Element, column, fill, height, rgb255, row, text, width)
 
