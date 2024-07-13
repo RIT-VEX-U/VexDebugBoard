@@ -126,7 +126,7 @@ httpd_uri_t index_get = {
 
 struct flash_file elm_min_js;
 httpd_uri_t elm_min_js_get = {
-    .uri = "/elm.min.js",
+    .uri = "/elm.js",
     .method = HTTP_GET,
     .handler = file_get_handler,
     .user_ctx = &elm_min_js,

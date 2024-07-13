@@ -54,7 +54,7 @@ viewWifi cfg initial =
     colrows
         [ ( textModifiedLabel "Hostname: " (wifi.hostname /= iwifi.hostname)
           , Input.text [ Font.color pallete.black ]
-                { label = ".local" |> text |> Input.labelRight []
+                { label = "hostname" |> text |> Input.labelRight []
                 , onChange =
                     \newname ->
                         { wifi
