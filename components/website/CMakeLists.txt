@@ -23,11 +23,11 @@ DEPENDS ${index_html})
 
 # Embed elm.js into binary
 add_custom_command(OUTPUT ${elm_js_c} 
-COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/embed_file.sh "elm_min_js" ${elm_min_js} ${elm_js_c}
-DEPENDS ${elm_min_js} ${elm_js})
+COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/embed_file.sh "elm_min_js" ${elm_min_js_gz} ${elm_js_c}
+DEPENDS ${elm_min_js_gz} ${elm_min_js} ${elm_js})
 
 # Build elm application into .js, .min.js, and .min.js.gz file
-add_custom_command(OUTPUT ${elm_js} ${elm_min_js}
+add_custom_command(OUTPUT ${elm_js} ${elm_min_js} ${elm_min_js_gz}
 COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/make_elm.sh ${ELM_SRC_DIR}/Main.elm ${elm_js} ${elm_min_js} ${elm_min_js_gz} ${ELM_OPT_FLAG}
 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 DEPENDS ${ELM_SOURCES})

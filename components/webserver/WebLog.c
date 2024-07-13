@@ -93,17 +93,24 @@ struct flash_file {
   char *name;
   char *buf;
   unsigned int size;
+  char *type;
+  bool gzipped;
 };
 
 esp_err_t file_get_handler(httpd_req_t *req) {
   struct flash_file *file = req->user_ctx;
-  ESP_LOGI(TAG, "HTTP Get of %s: size %u, %p", file->name, file->size,
-           file->buf);
+  ESP_LOGI(TAG, "HTTP Get of %s: size %u type %s: gz: %d", file->name,
+           file->size, file->type, (int)file->gzipped);
   if (file == NULL) {
     char *resp = "Error: File requested was not ready";
     return httpd_resp_send(req, resp, HTTPD_RESP_USE_STRLEN);
   }
 
+  ESP_ERROR_CHECK(httpd_resp_set_type(req, file->type));
+  if (file->gzipped) {
+    ESP_LOGI(TAG, "setting encoding to gzip");
+    ESP_ERROR_CHECK(httpd_resp_set_hdr(req, "Content-Encoding", "gzip"));
+  }
   return httpd_resp_send(req, file->buf, file->size);
   // char*resp = "error";
   // return httpd_resp_send(req, resp, HTTPD_RESP_USE_STRLEN);
@@ -152,12 +159,16 @@ httpd_handle_t http_log_start(uint16_t port) {
   index_html.name = "index.html";
   index_html.buf = get_index_html();
   index_html.size = get_index_html_size();
+  index_html.type = "text/html";
+  index_html.gzipped = false;
   ESP_LOGI(TAG, "Initialized %s of size %d to %p", index_html.name,
            index_html.size, index_html.buf);
 
   elm_min_js.name = "elm.min.js";
   elm_min_js.buf = get_elm_min_js();
   elm_min_js.size = get_elm_min_js_size();
+  elm_min_js.type = "application/javascript";
+  elm_min_js.gzipped = true;
   ESP_LOGI(TAG, "Initialized %s of size %d to %p", elm_min_js.name,
            elm_min_js.size, elm_min_js.buf);
 
