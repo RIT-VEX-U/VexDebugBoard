@@ -6,6 +6,8 @@
 
 #include "freertos/semphr.h"
 
+#include "website.h"
+
 static const char *TAG = "webserver";
 
 #define MUX_TIMEOUT (500 / portTICK_PERIOD_MS)
@@ -87,12 +89,6 @@ static bool append_log(const char *str) {
 
 void http_log_raw(const char *str) { append_log(str); }
 
-char *build_index_html;
-unsigned int build_index_html_len;
-
-char *build_elm_min_js;
-unsigned int build_elm_min_js_len;
-
 struct flash_file {
   char *name;
   char *buf;
@@ -154,12 +150,16 @@ httpd_handle_t http_log_start(uint16_t port) {
 
   // Initialize static files
   index_html.name = "index.html";
-  index_html.buf = build_index_html;
-  index_html.size = build_index_html_len;
+  index_html.buf = get_index_html();
+  index_html.size = get_index_html_size();
+  ESP_LOGI(TAG, "Initialized %s of size %d to %p", index_html.name,
+           index_html.size, index_html.buf);
 
   elm_min_js.name = "elm.min.js";
-  elm_min_js.buf = build_elm_min_js;
-  elm_min_js.size = build_elm_min_js_len;
+  elm_min_js.buf = get_elm_min_js();
+  elm_min_js.size = get_elm_min_js_size();
+  ESP_LOGI(TAG, "Initialized %s of size %d to %p", elm_min_js.name,
+           elm_min_js.size, elm_min_js.buf);
 
   /* Empty handle to esp_http_server */
   httpd_handle_t server = NULL;
