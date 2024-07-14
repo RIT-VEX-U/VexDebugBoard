@@ -1,7 +1,7 @@
 #include "connection_manager.h"
 #include "defines.h"
 #include "status_led.hpp"
-#include "webserver.h"
+#include "webserver.hpp"
 
 #include <driver/uart.h>
 #include <esp_err.h>
@@ -106,7 +106,7 @@ extern "C" void app_main(void) {
   ESP_LOGI(TAG, "Initializing Serial Connection...");
   init_serial();
 
-  httpd_handle_t server_handle = http_log_start(80);
+  httpd_handle_t server_handle = webserver_start(80);
   if (server_handle == NULL) {
     ESP_LOGE(TAG, "Failed to initialize log endpoint");
   }

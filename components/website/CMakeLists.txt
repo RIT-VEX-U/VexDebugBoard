@@ -14,7 +14,7 @@ set(elm_min_js ${CMAKE_CURRENT_BINARY_DIR}/elm.min.js)
 set(elm_min_js_gz ${CMAKE_CURRENT_BINARY_DIR}/elm.min.js.gz)
 
 
-set(ELM_OPT_FLAG --optimize)
+set(ELM_OPT_FLAG --debug)
 
 
 # Embed index.html into binary

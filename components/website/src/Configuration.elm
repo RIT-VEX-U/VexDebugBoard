@@ -4,7 +4,7 @@ import Element exposing (Element, centerX, centerY, height, px, row, text, width
 import Element.Font as Font
 import Element.Input as Input
 import Html exposing (col)
-import UiUtil exposing (colrows, pallete, textModifiedLabel)
+import UiUtil exposing (pallete, textModifiedLabel)
 
 
 type WifiMode

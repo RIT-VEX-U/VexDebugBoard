@@ -1,4 +1,4 @@
-#include "webserver.h"
+#include "webserver.hpp"
 
 #include <esp_log.h>
 #include <mdns.h>
@@ -11,19 +11,19 @@
 static const char *TAG = "webserver";
 
 struct flash_file {
-  char *name;
-  char *buf;
+  const char *name;
+  const char *buf;
   unsigned int size;
-  char *type;
+  const char *type;
   bool gzipped;
 };
 
 esp_err_t file_get_handler(httpd_req_t *req) {
-  struct flash_file *file = req->user_ctx;
+  flash_file *file = (flash_file *)req->user_ctx;
   ESP_LOGI(TAG, "HTTP Get of %s: size %u type %s: gz: %d", file->name,
            file->size, file->type, (int)file->gzipped);
   if (file == NULL) {
-    char *resp = "Error: File requested was not ready";
+    const char *resp = "Error: File requested was not ready";
     return httpd_resp_send(req, resp, HTTPD_RESP_USE_STRLEN);
   }
 
@@ -62,7 +62,7 @@ httpd_uri_t elm_min_js_get = {
  * @pre mDNS is initialized
  * @param port port to run server on. For browsers to see it should be 80
  */
-httpd_handle_t http_log_start(uint16_t port) {
+httpd_handle_t webserver_start(uint16_t port) {
   /* Generate default configuration */
   httpd_config_t config = HTTPD_DEFAULT_CONFIG();
   config.server_port = port;
@@ -107,7 +107,7 @@ httpd_handle_t http_log_start(uint16_t port) {
 }
 
 /* Function for stopping the webserver */
-void http_log_stop(httpd_handle_t server) {
+void webserver_stop(httpd_handle_t server) {
   if (server) {
     /* Stop the httpd server */
     httpd_stop(server);

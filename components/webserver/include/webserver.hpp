@@ -6,12 +6,12 @@ extern "C" {
 
 /// @brief begin the http log that can be accessed at hostname.local/log
 /// @param port what server port to use (should be 80)
-/// @return handle to server. use http_log_stop to destroy the server
-httpd_handle_t http_log_start(uint16_t port);
+/// @return handle to server. use webserver_stop to destroy the server
+httpd_handle_t webserver_start(uint16_t port);
 
 /// @brief destroys the specified server and cleans up
 /// @param server the server to be destoyed
-void http_log_stop(httpd_handle_t server);
+void webserver_stop(httpd_handle_t server);
 
 #ifdef __cplusplus
 }
