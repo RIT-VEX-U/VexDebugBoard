@@ -1,9 +1,9 @@
 #include "rest.hpp"
 #include "cJSON.h"
+#include "common.hpp"
 #include <esp_chip_info.h>
 #include <esp_log.h>
 #include <esp_timer.h>
-
 static const char *TAG = "api";
 
 const char *chip_model_to_string(esp_chip_model_t model) {
@@ -39,7 +39,9 @@ esp_err_t sysinfo_handler(httpd_req_t *req) {
   cJSON_AddStringToObject(root, "version", IDF_VER);
   cJSON_AddStringToObject(root, "model", chip_model_to_string(chip_info.model));
   cJSON_AddNumberToObject(root, "cores", chip_info.cores);
+  cJSON_AddStringToObject(root, "ip", get_ip_str());
 
+  // or print unformatted, save a couple bytes worth of spaces
   const char *json_str = cJSON_Print(root);
 
   ESP_ERROR_CHECK(httpd_resp_set_type(req, "application/json"));

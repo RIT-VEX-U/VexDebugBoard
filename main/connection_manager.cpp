@@ -1,13 +1,13 @@
 #include "connection_manager.h"
 
 #include "esp_event.h"
-#include "esp_wifi.h"
 #include <esp_err.h>
 #include <esp_log.h>
 #include <esp_wifi.h>
 #include <mdns.h>
 #include <string.h>
 
+#include "common.hpp"
 #include "defines.h"
 
 static const char *TAG = "con_man";
@@ -46,6 +46,9 @@ static void on_wifi_event(void *arg, esp_event_base_t event_base,
   } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
     ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
     ESP_LOGI(TAG, "got ip:" IPSTR, IP2STR(&event->ip_info.ip));
+
+    submit_ip(event->ip_info.ip);
+
     s_retry_num = 0;
     xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
   }
@@ -79,20 +82,6 @@ void init_wifi_ap() {
   wifi_config.ap.max_connection = 10;
 
   wifi_config.ap.pmf_cfg.required = true;
-
-  // wifi_config_t wifi_config = {.ap = {
-  //                                  .ssid = NETWORK_NAME,
-  //                                  .ssid_len = strlen(NETWORK_NAME),
-  //                                  .channel = 0,
-  //                                  .password = NETWORK_PASS,
-  //                                  .max_connection = 10,
-  //                                  .authmode = WIFI_AUTH_WPA_WPA2_PSK,
-  //                                  .pmf_cfg =
-  //                                      {
-  //                                          .required = false,
-  //                                      },
-  //                              }};
-  // if (strlen(NETWORK_PASS) == 0) {
 
   ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
   ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
