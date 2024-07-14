@@ -11,3 +11,5 @@ void submit_ip(esp_ip4_addr_t addr);
 esp_ip4_addr_t get_ip();
 
 const char *get_ip_str();
+
+const char *get_sw_version();

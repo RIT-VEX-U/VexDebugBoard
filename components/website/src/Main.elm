@@ -3,7 +3,7 @@ module Main exposing (main)
 import Api
 import Browser exposing (Document)
 import Configuration exposing (Configuration, viewWifi)
-import Element exposing (Element, alignRight, centerY, column, el, fill, fillPortion, height, px, rgb255, row, shrink, text, width)
+import Element exposing (Element, alignRight, centerX, centerY, column, el, fill, fillPortion, height, px, rgb255, row, shrink, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
@@ -22,8 +22,13 @@ type alias Model =
     , config : Configuration
     , initial_config : Configuration
     , board_status : Api.BoardStatus
-    , sysinfo : Maybe Api.SysInfo
+    , sysinfo : Api.SysInfo
     }
+
+
+type MModel
+    = NotConnected String
+    | Connected Model
 
 
 def_cfg : { wifi : { mode : Configuration.WifiMode, hostname : String }, numToSave : number }
@@ -31,14 +36,14 @@ def_cfg =
     { wifi = { mode = Configuration.AP, hostname = "debug" }, numToSave = 1 }
 
 
-initialModel : Model
-initialModel =
+initialModel : Api.SysInfo -> Model
+initialModel info =
     { page = Dashboard
     , version = { major = 0, minor = 0, patch = 1, comment = Just "alpha" }
     , config = def_cfg
     , initial_config = def_cfg
-    , board_status = Api.StatusNotYetGot
-    , sysinfo = Nothing
+    , board_status = Api.StatusOkay { uptimems = 0 }
+    , sysinfo = info
     }
 
 
@@ -52,18 +57,6 @@ type Page
 
 type alias SWVersion =
     { major : Int, minor : Int, patch : Int, comment : Maybe String }
-
-
-viewSWVersion : SWVersion -> Element msg
-viewSWVersion version =
-    let
-        nums =
-            [ version.major, version.minor, version.patch ] |> List.map String.fromInt |> String.join "."
-
-        extra =
-            version.comment |> Maybe.map (\c -> "-" ++ c) |> Maybe.withDefault ""
-    in
-    Element.text (nums ++ extra)
 
 
 statusTextAndImage : String -> Element msg -> Maybe (Element Never) -> Element msg
@@ -99,9 +92,6 @@ viewBadStatus e =
 viewStatus : Api.BoardStatus -> Element msg
 viewStatus status =
     case status of
-        Api.StatusNotYetGot ->
-            statusTextAndImage "Connecting..." UiUtil.loadingIcon Nothing
-
         Api.StatusOkay s ->
             viewGoodStatus s
 
@@ -114,7 +104,6 @@ type Msg
     | UpdateConfig Configuration
     | HeatbeatTick Time.Posix
     | HeartbeatReceived (Result Http.Error Api.HeartbeatResponse)
-    | SysinfoReceived (Result Http.Error Api.SysInfo)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -127,7 +116,7 @@ update msg model =
             ( { model | config = cfg }, Cmd.none )
 
         HeatbeatTick _ ->
-            ( model, Api.heartbeatRequest HeartbeatReceived )
+            ( model, Api.heartbeatRequest model.sysinfo.ip HeartbeatReceived )
 
         HeartbeatReceived res ->
             let
@@ -140,14 +129,6 @@ update msg model =
                             Api.StatusOkay hr
             in
             ( { model | board_status = newstatus }, Cmd.none )
-
-        SysinfoReceived res ->
-            case res of
-                Err _ ->
-                    Debug.todo "Failed sysinfo"
-
-                Ok info ->
-                    ( { model | sysinfo = Just info }, Cmd.none )
 
 
 h1size : number
@@ -188,24 +169,21 @@ viewConfig config initial_config =
         ]
 
 
-viewSysInfo : Maybe Api.SysInfo -> Element msg
-viewSysInfo maybe =
-    case maybe of
-        Nothing ->
-            text "No System info yet!"
-
-        Just info ->
-            column []
-                [ text ("IP Address: " ++ info.ip)
-                , text ("Chip Model: " ++ info.model)
-                ]
+viewSysInfo : Api.SysInfo -> Element msg
+viewSysInfo info =
+    column [ Element.spacingXY 0 10, Element.paddingXY 10 10 ]
+        [ text ("IP Address: " ++ info.ip)
+        , text ("Software version: " ++ info.sw_version)
+        , text ("ESP version: " ++ info.esp_version)
+        , text ("Chip Model: " ++ info.model)
+        ]
 
 
 viewDashboard : Model -> Element msg
 viewDashboard mod =
     column [ width fill, height fill, Element.paddingXY 10 10 ]
         [ pageTitle "Dashboard"
-        , viewSWVersion mod.version
+        , text "System Info:" |> el [ Font.bold, Font.size 30 ]
         , viewSysInfo mod.sysinfo
         ]
 
@@ -276,25 +254,68 @@ focusStyle =
     }
 
 
-options : { options : List Element.Option }
-options =
+layout_options : { options : List Element.Option }
+layout_options =
     { options = [ Element.focusStyle focusStyle ] }
 
 
-view : Model -> Document Msg
+view : Model -> Element Msg
 view model =
-    let
-        body =
-            Element.layoutWith options [ Font.family [ Font.monospace ] ] (page model)
-    in
-    { title = "Vex Debug Board", body = [ body ] }
+    page model
 
 
-main : Program () Model Msg
+default_host : String
+default_host =
+    -- controls where our requests go before we get an IP. when using elm reactor and hosting ui locally, this should be the mdns name or the ip of the board
+    -- when "in production" (served from the esp32) leave this blank and it will request back to the board whereever it is
+    "http://debug.local"
+
+
+main : Program () MModel MMsg
 main =
     Browser.document
-        { init = \_ -> ( initialModel, Api.sysInfoRequest SysinfoReceived )
-        , view = view
-        , update = update
-        , subscriptions = \_ -> Time.every 5000 HeatbeatTick
+        { init = \_ -> ( NotConnected "Connecting...", Api.sysInfoRequest default_host SysinfoReceived )
+        , view = mview
+        , update = mupdate
+        , subscriptions = \_ -> Time.every 5000 (\t -> HeatbeatTick t |> AppMsg)
         }
+
+
+mupdate : MMsg -> MModel -> ( MModel, Cmd MMsg )
+mupdate rinfo mmodel =
+    case rinfo of
+        SysinfoReceived res ->
+            case res of
+                Err e ->
+                    ( NotConnected "An unknown error connecting to the board occured. Reload?", Cmd.none )
+
+                Ok info ->
+                    ( Connected (initialModel info), Api.heartbeatRequest info.ip (\r -> HeartbeatReceived r |> AppMsg) )
+
+        AppMsg msg ->
+            case mmodel of
+                NotConnected s ->
+                    ( NotConnected ("Something bad happened: " ++ s), Api.sysInfoRequest default_host SysinfoReceived )
+
+                Connected model ->
+                    update msg model
+                        |> Tuple.mapSecond (\cmd -> Cmd.map AppMsg cmd)
+                        |> Tuple.mapFirst (\mod -> Connected mod)
+
+
+mview : MModel -> Document MMsg
+mview mmod =
+    (case mmod of
+        NotConnected s ->
+            text s |> el [ Font.color pallete.font, centerX, centerY, width fill, height fill ]
+
+        Connected mod ->
+            view mod
+    )
+        |> (\el -> Element.layoutWith layout_options [ Font.family [ Font.monospace ], Background.color pallete.background ] (el |> Element.map AppMsg))
+        |> (\html -> { title = "Vex Debug Board", body = [ html ] })
+
+
+type MMsg
+    = SysinfoReceived (Result Http.Error Api.SysInfo)
+    | AppMsg Msg

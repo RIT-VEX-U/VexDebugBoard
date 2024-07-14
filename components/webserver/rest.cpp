@@ -36,7 +36,8 @@ esp_err_t sysinfo_handler(httpd_req_t *req) {
   esp_chip_info_t chip_info;
   esp_chip_info(&chip_info);
 
-  cJSON_AddStringToObject(root, "version", IDF_VER);
+  cJSON_AddStringToObject(root, "esp_version", IDF_VER);
+  cJSON_AddStringToObject(root, "sw_version", get_sw_version());
   cJSON_AddStringToObject(root, "model", chip_model_to_string(chip_info.model));
   cJSON_AddNumberToObject(root, "cores", chip_info.cores);
   cJSON_AddStringToObject(root, "ip", get_ip_str());

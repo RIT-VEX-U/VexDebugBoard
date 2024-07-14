@@ -3,7 +3,6 @@ module Configuration exposing (..)
 import Element exposing (Element, centerX, centerY, height, px, row, text, width)
 import Element.Font as Font
 import Element.Input as Input
-import Html exposing (col)
 import UiUtil exposing (pallete, textModifiedLabel)
 
 
