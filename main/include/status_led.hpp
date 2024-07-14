@@ -1,6 +1,10 @@
 #ifndef STATUS_H
 #define STATUS_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <driver/gpio.h>
 
 typedef enum { OFF, SETUP, IDLE, CONNECTED, FAULTED } status_led_options_t;
@@ -18,7 +22,7 @@ void status_led_init(gpio_num_t _gpio);
  *
  * @param ptr Null
  */
-void status_led_task_main();
+extern "C" void status_led_task_main(void *);
 
 /**
  * Set the status LED to a new state. Possible options are
@@ -34,4 +38,8 @@ void status_led_set(status_led_options_t _opt);
  */
 void status_led_signal_wifi_conn();
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif

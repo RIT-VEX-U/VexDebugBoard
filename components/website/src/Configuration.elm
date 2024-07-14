@@ -1,8 +1,9 @@
 module Configuration exposing (..)
 
-import Element exposing (Element, text)
+import Element exposing (Element, centerX, centerY, height, px, row, text, width)
 import Element.Font as Font
 import Element.Input as Input
+import Html exposing (col)
 import UiUtil exposing (colrows, pallete, textModifiedLabel)
 
 
@@ -51,22 +52,21 @@ viewWifi cfg initial =
         iwifi =
             initial.wifi
     in
-    colrows
-        [ ( textModifiedLabel "Hostname: " (wifi.hostname /= iwifi.hostname)
-          , Input.text [ Font.color pallete.black ]
-                { label = "hostname" |> text |> Input.labelRight []
-                , onChange =
-                    \newname ->
-                        { wifi
-                            | hostname =
-                                if isValidHostname newname then
-                                    newname
+    row []
+        [ textModifiedLabel "Hostname: " (wifi.hostname /= iwifi.hostname)
+        , Input.text [ Font.color pallete.black ]
+            { label = ".local" |> text |> Input.labelRight []
+            , onChange =
+                \newname ->
+                    { wifi
+                        | hostname =
+                            if isValidHostname newname then
+                                newname
 
-                                else
-                                    wifi.hostname
-                        }
-                , placeholder = Nothing
-                , text = wifi.hostname
-                }
-          )
+                            else
+                                wifi.hostname
+                    }
+            , placeholder = Nothing
+            , text = wifi.hostname
+            }
         ]

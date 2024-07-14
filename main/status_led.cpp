@@ -1,4 +1,4 @@
-#include "status_led.h"
+#include "status_led.hpp"
 #include "defines.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
@@ -12,7 +12,7 @@ bool new_connection = false;
 
 SemaphoreHandle_t mux = NULL;
 TaskHandle_t task_h = NULL;
-gpio_num_t pin = 0;
+gpio_num_t pin = GPIO_NUM_0;
 
 /**
  * Initialize the LED on the given GPIO and start a new thread
@@ -30,8 +30,8 @@ void status_led_init(gpio_num_t _gpio) {
 
   mux = xSemaphoreCreateMutex();
 
-  xTaskCreate(status_led_task_main, "task_status_led", 1024, NULL,
-              tskIDLE_PRIORITY, &task_h);
+  xTaskCreate((TaskFunction_t)status_led_task_main, "task_status_led", 1024,
+              NULL, tskIDLE_PRIORITY, &task_h);
   initialized = true;
 }
 
@@ -57,7 +57,7 @@ void pulse(int ms) {
  *
  * @param ptr Null
  */
-void status_led_task_main(void *ptr) {
+extern "C" void status_led_task_main(void *ptr) {
   status_led_options_t option = OFF;
   bool wifi_conn = false;
   while (true) {
