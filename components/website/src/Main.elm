@@ -1,8 +1,9 @@
 module Main exposing (main)
 
+import Api
 import Browser exposing (Document)
 import Configuration exposing (Configuration, viewWifi)
-import Element exposing (Element, column, el, fill, fillPortion, height, px, rgb255, row, shrink, text, width)
+import Element exposing (Element, alignRight, centerY, column, el, fill, fillPortion, height, px, rgb255, row, shrink, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
@@ -20,7 +21,7 @@ type alias Model =
     , version : SWVersion
     , config : Configuration
     , initial_config : Configuration
-    , board_uptime : Maybe Int
+    , board_status : Api.BoardStatus
     }
 
 
@@ -35,7 +36,7 @@ initialModel =
     , version = { major = 0, minor = 0, patch = 1, comment = Just "alpha" }
     , config = def_cfg
     , initial_config = def_cfg
-    , board_uptime = Nothing
+    , board_status = Api.StatusNotYetGot
     }
 
 
@@ -63,16 +64,54 @@ viewSWVersion version =
     Element.text (nums ++ extra)
 
 
+statusTextAndImage : String -> Element msg -> Maybe (Element Never) -> Element msg
+statusTextAndImage status img tooltip =
+    let
+        tt =
+            tooltip |> Maybe.map (\t -> [ UiUtil.tooltip Element.onLeft t ])
+
+        attrs =
+            List.append [ alignRight, Element.spacing 8 ] (tt |> Maybe.withDefault [])
+    in
+    row attrs [ el [ Font.size 18, centerY, Font.color pallete.darkgray ] (text status), img ]
+
+
+viewGoodStatus : Api.HeartbeatResponse -> Element msg
+viewGoodStatus status =
+    let
+        popup =
+            text <| "Uptime: " ++ String.fromInt status.uptimems ++ " ms"
+    in
+    statusTextAndImage "Connected" UiUtil.connectedIcon (Just <| el [ Font.size 15, Background.color pallete.selectedPage, Border.color pallete.black, Border.rounded 4, Element.padding 5, Element.spacing 10 ] popup)
+
+
+
+-- text ("Uptime: " ++ String.fromInt status.uptimems ++ "ms")
+
+
+viewBadStatus : a -> Element msg
+viewBadStatus e =
+    statusTextAndImage "Disconnected" UiUtil.errorIcon Nothing
+
+
+viewStatus : Api.BoardStatus -> Element msg
+viewStatus status =
+    case status of
+        Api.StatusNotYetGot ->
+            statusTextAndImage "Connecting..." UiUtil.loadingIcon Nothing
+
+        Api.StatusOkay s ->
+            viewGoodStatus s
+
+        Api.StatusErrored e ->
+            viewBadStatus e
+
+
 type Msg
     = Goto Page
     | UpdateConfig Configuration
     | HeatbeatTick Time.Posix
-    | HeartbeatReceived (Result Http.Error ())
-
-
-heartbeatRequest : Cmd Msg
-heartbeatRequest =
-    Http.get { url = "/api/heartbeat", expect = Http.expectWhatever HeartbeatReceived }
+    | HeartbeatReceived (Result Http.Error Api.HeartbeatResponse)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -85,10 +124,19 @@ update msg model =
             ( { model | config = cfg }, Cmd.none )
 
         HeatbeatTick _ ->
-            ( model, heartbeatRequest )
+            ( model, Api.heartbeatRequest HeartbeatReceived )
 
         HeartbeatReceived res ->
-            ( model, Cmd.none )
+            let
+                newstatus =
+                    case res of
+                        Err e ->
+                            Api.StatusErrored e
+
+                        Ok hr ->
+                            Api.StatusOkay hr
+            in
+            ( { model | board_status = newstatus }, Cmd.none )
 
 
 h1size : number
@@ -118,18 +166,6 @@ saveButton needsSave needsRestart =
 
     else
         Element.none
-
-
-
-{-
-   Input.radio []
-               { label = modifiedLabel "Wifi Mode" True |> Input.labelLeft []
-               , onChange = \wm -> { cfg | wifi = wm }
-               , options = []
-               , selected = Nothing
-               }
-           ,
--}
 
 
 viewConfig : Configuration -> Configuration -> Element Msg
@@ -167,15 +203,10 @@ viewPage mod =
             Element.el [ Element.centerX, Element.centerY ] (Element.text "Coming Soon")
 
 
-headerRadius : number
-headerRadius =
-    8
-
-
 headerButton : Page -> ( String, Page ) -> Element.Element Msg
 headerButton current ( name, page_togo ) =
     Input.button
-        [ Border.roundEach { bottomLeft = 0, bottomRight = 0, topLeft = headerRadius, topRight = headerRadius }
+        [ Border.roundEach { bottomLeft = 0, bottomRight = 0, topLeft = UiUtil.headerTabRadius, topRight = UiUtil.headerTabRadius }
         , Element.paddingXY 6 4
         , Background.color <|
             if page_togo == current then
@@ -190,17 +221,24 @@ headerButton current ( name, page_togo ) =
         { label = Element.text name, onPress = Just (Goto page_togo) }
 
 
-header : { a | page : Page } -> Element Msg
+header : Model -> Element Msg
 header mod =
-    row [ height (Element.shrink |> Element.minimum 45), Element.scrollbarX, width fill, Region.navigation, Element.spacing 4, Element.paddingEach { left = 5, right = 5, top = 5, bottom = 0 } ] <| List.map (headerButton mod.page) menu_items
+    let
+        tabs =
+            List.map (headerButton mod.page) menu_items
+    in
+    row
+        [ height (Element.shrink |> Element.minimum 45), Element.scrollbarX, width fill, Region.navigation, Element.spacing 4, Element.paddingEach { left = 5, right = 5, top = 5, bottom = 0 } ]
+    <|
+        List.append tabs [ viewStatus mod.board_status |> el [ alignRight ] ]
 
 
-content : { a | page : Page, version : SWVersion, config : Configuration, initial_config : Configuration } -> Element Msg
+content : Model -> Element Msg
 content mod =
     el [ width fill, height fill, Region.mainContent, Background.color pallete.selectedPage ] (viewPage mod)
 
 
-page : { a | page : Page, version : SWVersion, config : Configuration, initial_config : Configuration } -> Element Msg
+page : Model -> Element Msg
 page mod =
     column [ width fill, height fill, Background.color pallete.background, Font.color pallete.font ] [ header mod, content mod ]
 
@@ -230,7 +268,7 @@ view model =
 main : Program () Model Msg
 main =
     Browser.document
-        { init = \_ -> ( initialModel, Cmd.none )
+        { init = \_ -> ( initialModel, Api.heartbeatRequest HeartbeatReceived )
         , view = view
         , update = update
         , subscriptions = \_ -> Time.every 5000 HeatbeatTick
