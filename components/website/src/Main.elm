@@ -10,6 +10,8 @@ import Element.Input as Input
 import Element.Region as Region
 import Html exposing (Html, button, div)
 import Html.Events exposing (onClick)
+import Http
+import Time
 import UiUtil exposing (pallete)
 
 
@@ -18,6 +20,7 @@ type alias Model =
     , version : SWVersion
     , config : Configuration
     , initial_config : Configuration
+    , board_uptime : Maybe Int
     }
 
 
@@ -32,6 +35,7 @@ initialModel =
     , version = { major = 0, minor = 0, patch = 1, comment = Just "alpha" }
     , config = def_cfg
     , initial_config = def_cfg
+    , board_uptime = Nothing
     }
 
 
@@ -62,9 +66,16 @@ viewSWVersion version =
 type Msg
     = Goto Page
     | UpdateConfig Configuration
+    | HeatbeatTick Time.Posix
+    | HeartbeatReceived (Result Http.Error ())
 
 
-update : Msg -> Model -> ( Model, Cmd msg )
+heartbeatRequest : Cmd Msg
+heartbeatRequest =
+    Http.get { url = "/api/heartbeat", expect = Http.expectWhatever HeartbeatReceived }
+
+
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Goto p ->
@@ -72,6 +83,12 @@ update msg model =
 
         UpdateConfig cfg ->
             ( { model | config = cfg }, Cmd.none )
+
+        HeatbeatTick _ ->
+            ( model, heartbeatRequest )
+
+        HeartbeatReceived res ->
+            ( model, Cmd.none )
 
 
 h1size : number
@@ -216,5 +233,5 @@ main =
         { init = \_ -> ( initialModel, Cmd.none )
         , view = view
         , update = update
-        , subscriptions = \_ -> Sub.none
+        , subscriptions = \_ -> Time.every 5000 HeatbeatTick
         }
