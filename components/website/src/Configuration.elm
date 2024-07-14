@@ -1,25 +1,66 @@
 module Configuration exposing (..)
 
-import Element exposing (Element, centerX, centerY, height, px, row, text, width)
+import Common exposing (ConfigPair, Configuration, Msg(..), WifiSetup)
+import Element exposing (Element, centerX, centerY, column, el, fill, height, px, row, text, width)
+import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input
-import UiUtil exposing (pallete, textModifiedLabel)
+import Pages.Dashboard exposing (view)
+import UiUtil exposing (pageTitle, pallete, textModifiedLabel)
 
 
-type WifiMode
-    = AP
-    | STA
+view : Maybe ConfigPair -> Element Msg
+view mcp =
+    case mcp of
+        Nothing ->
+            text "Config not yet loaded from device..." |> el [ Element.paddingXY 0 20, width fill, Font.center ]
+
+        Just cfgs ->
+            viewActual cfgs
+
+
+viewActual : ConfigPair -> Element Msg
+viewActual cfgs =
+    let
+        initial_config =
+            cfgs.initial
+
+        config =
+            cfgs.current
+    in
+    column [ width fill, height fill, Element.paddingXY 10 10 ]
+        [ pageTitle "Configuration"
+        , viewWifi cfgs.current cfgs.initial |> Element.map (\wifi -> { config | wifi = wifi } |> EditConfig)
+        , saveButton (config /= initial_config) False
+        ]
+
+
+saveButton : Bool -> Bool -> Element msg
+saveButton needsSave needsRestart =
+    let
+        text =
+            if needsRestart then
+                "Save and Restart"
+
+            else
+                "Save"
+    in
+    if needsSave then
+        Input.button
+            [ Background.color pallete.nonselectedPage, Element.padding 5 ]
+            { label = Element.text text, onPress = Nothing }
+
+    else
+        Element.none
+
+
+updateCurrent : ConfigPair -> Configuration -> ConfigPair
+updateCurrent pair new =
+    { pair | current = new }
 
 
 
 -- authType : WifiMode, ssid : String , password: String
-
-
-type alias WifiSetup =
-    { mode : WifiMode, hostname : String }
-
-
-
 -- https://man7.org/linux/man-pages/man7/hostname.7.html
 
 
@@ -36,10 +77,6 @@ isValidHostname hn =
             List.any (\good -> not good) goodChars
     in
     badStart || anyBadChars |> not
-
-
-type alias Configuration =
-    { wifi : WifiSetup, numToSave : Int }
 
 
 viewWifi : Configuration -> Configuration -> Element WifiSetup

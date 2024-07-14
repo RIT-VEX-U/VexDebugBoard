@@ -1,7 +1,18 @@
 module UiUtil exposing (..)
 
 import Element exposing (Attribute, Element, centerY, column, el, fill, height, htmlAttribute, inFront, mouseOver, rgb255, row, shrink, text, transparent, width)
+import Element.Font as Font
 import Html.Attributes
+
+
+h1size : number
+h1size =
+    30
+
+
+pageTitle : String -> Element msg
+pageTitle title =
+    el [ Element.centerX, Font.size h1size, Element.paddingXY 0 20, Font.underline, Font.bold ] (Element.text title)
 
 
 tooltip : (Element msg -> Attribute msg) -> Element Never -> Attribute msg

@@ -14,13 +14,26 @@ getToIP host data =
     Http.get { url = "http://" ++ host ++ data.path, expect = data.expect }
 
 
+getToIpWithTimeout : Float -> String -> { path : String, expect : Http.Expect msg } -> Cmd msg
+getToIpWithTimeout timout host data =
+    Http.request
+        { method = "GET"
+        , headers = []
+        , url = "http://" ++ host ++ data.path
+        , body = Http.emptyBody
+        , timeout = Just timout
+        , expect = data.expect
+        , tracker = Nothing
+        }
+
+
 type alias HeartbeatResponse =
     { uptimems : Int }
 
 
 heartbeatRequest : String -> (Result Http.Error HeartbeatResponse -> msg) -> Cmd msg
 heartbeatRequest host onget =
-    getToIP host { path = "/api/heartbeat", expect = Http.expectJson onget parseHeartbeatResponse }
+    getToIpWithTimeout 1000 host { path = "/api/heartbeat", expect = Http.expectJson onget parseHeartbeatResponse }
 
 
 type alias SysInfo =
