@@ -5,7 +5,7 @@
 #include <stdio.h>
 
 #include "freertos/semphr.h"
-
+#include "rest.hpp"
 #include "website.h"
 
 static const char *TAG = "webserver";
@@ -90,18 +90,20 @@ httpd_handle_t webserver_start(uint16_t port) {
   httpd_handle_t server = NULL;
 
   /* Start the httpd server */
-  if (httpd_start(&server, &config) == ESP_OK) {
-    /* Register URI handlers */
-    ESP_ERROR_CHECK(httpd_register_uri_handler(server, &index_get));
-    ESP_ERROR_CHECK(httpd_register_uri_handler(server, &elm_min_js_get));
-    ESP_ERROR_CHECK(httpd_register_err_handler(server, HTTPD_404_NOT_FOUND,
-                                               &http_404_error_handler));
-  }
-  ESP_LOGI(TAG, "Webserver Status: %s", (server == NULL) ? "bad" : "good");
+  ESP_ERROR_CHECK(httpd_start(&server, &config));
+
   if (server == NULL) {
+    ESP_LOGE(TAG, "Failed to start HTTP server");
     return NULL;
   }
-
+  /* Register URI handlers */
+  // UI Files
+  ESP_ERROR_CHECK(httpd_register_uri_handler(server, &index_get));
+  ESP_ERROR_CHECK(httpd_register_uri_handler(server, &elm_min_js_get));
+  // 404 Page
+  ESP_ERROR_CHECK(httpd_register_err_handler(server, HTTPD_404_NOT_FOUND,
+                                             &http_404_error_handler));
+  init_rest_server(server);
   /* If server failed to start, handle will be NULL */
   return server;
 }
