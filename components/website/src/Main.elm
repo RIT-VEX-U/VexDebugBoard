@@ -22,6 +22,7 @@ type alias Model =
     , config : Configuration
     , initial_config : Configuration
     , board_status : Api.BoardStatus
+    , sysinfo : Maybe Api.SysInfo
     }
 
 
@@ -37,6 +38,7 @@ initialModel =
     , config = def_cfg
     , initial_config = def_cfg
     , board_status = Api.StatusNotYetGot
+    , sysinfo = Nothing
     }
 
 
@@ -112,6 +114,7 @@ type Msg
     | UpdateConfig Configuration
     | HeatbeatTick Time.Posix
     | HeartbeatReceived (Result Http.Error Api.HeartbeatResponse)
+    | SysinfoReceived (Result Http.Error Api.SysInfo)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -137,6 +140,14 @@ update msg model =
                             Api.StatusOkay hr
             in
             ( { model | board_status = newstatus }, Cmd.none )
+
+        SysinfoReceived res ->
+            case res of
+                Err _ ->
+                    Debug.todo "Failed sysinfo"
+
+                Ok info ->
+                    ( { model | sysinfo = Just info }, Cmd.none )
 
 
 h1size : number
@@ -177,11 +188,25 @@ viewConfig config initial_config =
         ]
 
 
-viewDashboard : { a | version : SWVersion } -> Element msg
+viewSysInfo : Maybe Api.SysInfo -> Element msg
+viewSysInfo maybe =
+    case maybe of
+        Nothing ->
+            text "No System info yet!"
+
+        Just info ->
+            column []
+                [ text ("IP Address: " ++ info.ip)
+                , text ("Chip Model: " ++ info.model)
+                ]
+
+
+viewDashboard : Model -> Element msg
 viewDashboard mod =
     column [ width fill, height fill, Element.paddingXY 10 10 ]
         [ pageTitle "Dashboard"
         , viewSWVersion mod.version
+        , viewSysInfo mod.sysinfo
         ]
 
 
@@ -190,7 +215,7 @@ menu_items =
     [ ( "Dashboard", Dashboard ), ( "Configuration", Config ), ( "Logs", Logs ), ( "3D Model", Model3D ), ( "File System", FileExplorer ) ]
 
 
-viewPage : { a | page : Page, version : SWVersion, config : Configuration, initial_config : Configuration } -> Element Msg
+viewPage : Model -> Element Msg
 viewPage mod =
     case mod.page of
         Dashboard ->
@@ -268,7 +293,7 @@ view model =
 main : Program () Model Msg
 main =
     Browser.document
-        { init = \_ -> ( initialModel, Api.heartbeatRequest HeartbeatReceived )
+        { init = \_ -> ( initialModel, Api.sysInfoRequest SysinfoReceived )
         , view = view
         , update = update
         , subscriptions = \_ -> Time.every 5000 HeatbeatTick

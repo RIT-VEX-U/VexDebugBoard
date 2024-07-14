@@ -9,23 +9,23 @@ static const char *TAG = "api";
 const char *chip_model_to_string(esp_chip_model_t model) {
   switch (model) {
   case CHIP_ESP32:
-    return "CHIP_ESP32";
+    return "ESP32";
   case CHIP_ESP32S2:
-    return "CHIP_ESP32S2";
+    return "ESP32S2";
   case CHIP_ESP32S3:
-    return "CHIP_ESP32S3";
+    return "ESP32S3";
   case CHIP_ESP32C3:
-    return "CHIP_ESP32C3";
+    return "ESP32C3";
   case CHIP_ESP32C2:
-    return "CHIP_ESP32C2";
+    return "ESP32C2";
   case CHIP_ESP32C6:
-    return "CHIP_ESP32C6";
+    return "ESP32C6";
   case CHIP_ESP32H2:
-    return "CHIP_ESP32H2";
+    return "ESP32H2";
   case CHIP_ESP32P4:
-    return "CHIP_ESP32P4";
+    return "ESP32P4";
   case CHIP_POSIX_LINUX:
-    return "CHIP_POSIX_LINUX";
+    return "POSIX_LINUX";
   }
   return "UNKOWN CHIP";
 }
