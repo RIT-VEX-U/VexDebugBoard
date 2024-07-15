@@ -1,6 +1,6 @@
 module UiUtil exposing (..)
 
-import Element exposing (Attribute, Element, centerY, column, el, fill, height, htmlAttribute, inFront, mouseOver, rgb255, row, shrink, text, transparent, width)
+import Element exposing (Attribute, Element, centerY, column, el, fill, height, htmlAttribute, inFront, mouseOver, rgb, rgb255, row, shrink, text, transparent, width)
 import Element.Font as Font
 import Html
 import Html.Attributes
@@ -87,6 +87,7 @@ pallete =
     , font = rgb255 255 255 255
     , black = rgb255 0 0 0
     , darkgray = rgb255 80 80 80
+    , red = rgb255 218 41 28
     }
 
 

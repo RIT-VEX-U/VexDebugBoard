@@ -1,9 +1,9 @@
 module Configuration exposing (..)
 
 import Common exposing (ConfigPair, Configuration, Msg(..))
-import Element exposing (Element, centerX, centerY, column, el, fill, height, px, row, text, width)
+import Element exposing (Element, centerX, centerY, column, el, fill, height, padding, paddingXY, px, row, text, width)
 import Element.Background as Background
-import Element.Border
+import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Pages.Dashboard exposing (view)
@@ -28,20 +28,29 @@ inFrontRight e =
 labelWithQuestionTooltip : String -> Element Never -> Input.Label msg
 labelWithQuestionTooltip label ttext =
     Input.labelLeft
-        [ tooltip inFrontRight
-            (ttext
-                |> el
-                    [ Background.color pallete.black
-                    , Element.padding 10
-                    , Element.Border.rounded 10
-                    , Font.size 15
-                    ]
-            )
-        ]
+        [ Element.paddingEach { left = 0, right = 20, top = 0, bottom = 0 } ]
     <|
-        row [ Element.spacing 5 ] [ text label, text "(?)" ]
+        row [ Element.spacing 5 ]
+            [ text label
+            , text "(?)"
+                |> el
+                    [ Font.color pallete.darkgray
+                    , tooltip inFrontRight
+                        (ttext
+                            |> el
+                                [ Background.color pallete.black
+                                , Element.padding 10
+                                , Border.rounded 10
+                                , Font.size 15
+                                , Font.color pallete.font
+                                ]
+                        )
+                    , centerY
+                    ]
+            ]
 
 
+useMdnsLabel : Input.Label msg
 useMdnsLabel =
     labelWithQuestionTooltip "Use mDNS" <|
         column [] [ text "Use Multicast DNS to give the Vex Debug Board a helpful name.", text "Without this, you will need to know the IP address of the board", text "(may not work on some computers)" ]
@@ -50,15 +59,13 @@ useMdnsLabel =
 viewActual : ConfigPair -> Element Msg
 viewActual cfgs =
     let
-        -- initial_config =
-        --     cfgs.initial
+        initial_config =
+            cfgs.initial
+
         config =
             cfgs.current
-
-        a =
-            3
     in
-    column [ width fill, height fill, Element.paddingXY 10 10 ]
+    column [ width fill, height fill, Element.paddingXY 10 10, Element.spacingXY 0 20 ]
         [ pageTitle "Configuration"
         , Input.checkbox []
             { onChange = \s -> Common.EditConfig { config | use_mdns = s }
@@ -66,9 +73,31 @@ viewActual cfgs =
             , checked = config.use_mdns
             , label = useMdnsLabel
             }
+        , if config.use_mdns then
+            hostnameEdit config
+
+          else
+            Element.none
 
         -- , viewWifi cfgs.current cfgs.initial |> Element.map (\wifi -> { config | wifi = wifi } |> EditConfig)
-        -- , saveButton (config /= initial_config) False
+        , saveButton (config /= initial_config) False
+        ]
+
+
+hostnameEdit : Configuration -> Element Msg
+hostnameEdit config =
+    column []
+        [ Input.text [ Font.color pallete.black ]
+            { label = labelWithQuestionTooltip "Hostname" (column [] [ text "Where to go to see this on the next reboot" ])
+            , text = config.mdns_hostname
+            , placeholder = Nothing
+            , onChange = \t -> { config | mdns_hostname = t } |> EditConfig
+            }
+        , if not <| String.endsWith ".local" config.mdns_hostname then
+            text "Hostname must end with `.local`" |> el [ Font.color pallete.red, Element.padding 5 ]
+
+          else
+            Element.none
         ]
 
 
@@ -84,7 +113,14 @@ saveButton needsSave needsRestart =
     in
     if needsSave then
         Input.button
-            [ Background.color pallete.nonselectedPage, Element.padding 5 ]
+            [ Background.color pallete.nonselectedPage
+            , Element.padding 5
+            , centerX
+            , Element.alignBottom
+            , padding 15
+            , Font.size 25
+            , Border.rounded 10
+            ]
             { label = Element.text text, onPress = Nothing }
 
     else

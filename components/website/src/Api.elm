@@ -7,15 +7,15 @@ import Json.Decode as D exposing (Decoder)
 
 getToIP : String -> { path : String, expect : Http.Expect msg } -> Cmd msg
 getToIP host data =
-    Http.get { url = "http://" ++ host ++ data.path, expect = data.expect }
+    Http.get { url = host ++ data.path, expect = data.expect }
 
 
-getWithTimeout : Float -> { path : String, expect : Http.Expect msg } -> Cmd msg
-getWithTimeout timout data =
+getWithTimeout : Float -> String -> { path : String, expect : Http.Expect msg } -> Cmd msg
+getWithTimeout timout host data =
     Http.request
         { method = "GET"
         , headers = []
-        , url = data.path
+        , url = host ++ data.path
         , body = Http.emptyBody
         , timeout = Just timout
         , expect = data.expect
@@ -23,14 +23,14 @@ getWithTimeout timout data =
         }
 
 
-heartbeatRequest : (Result Http.Error HeartbeatResponse -> msg) -> Cmd msg
-heartbeatRequest onget =
-    getWithTimeout 1000 { path = "/api/heartbeat", expect = Http.expectJson onget parseHeartbeatResponse }
+heartbeatRequest : String -> (Result Http.Error HeartbeatResponse -> msg) -> Cmd msg
+heartbeatRequest host onget =
+    getWithTimeout 1000 host { path = "/api/heartbeat", expect = Http.expectJson onget parseHeartbeatResponse }
 
 
-configRequest : (Result Http.Error Configuration -> msg) -> Cmd msg
-configRequest onget =
-    Http.get { url = "/api/config", expect = Http.expectJson onget parseConfiguration }
+configRequest : String -> (Result Http.Error Configuration -> msg) -> Cmd msg
+configRequest host onget =
+    Http.get { url = host ++ "/api/config", expect = Http.expectJson onget parseConfiguration }
 
 
 sysInfoRequest : String -> (Result Http.Error SysInfo -> msg) -> Cmd msg

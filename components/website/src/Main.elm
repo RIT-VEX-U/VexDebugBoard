@@ -102,7 +102,7 @@ update msg model =
             )
 
         HeatbeatTick _ ->
-            ( model, Api.heartbeatRequest HeartbeatReceived )
+            ( model, Api.heartbeatRequest default_host HeartbeatReceived )
 
         HeartbeatReceived res ->
             let
@@ -264,8 +264,8 @@ mupdate rinfo mmodel =
                 Ok info ->
                     ( Connected (initialModel info)
                     , Cmd.batch
-                        [ Api.heartbeatRequest (\r -> HeartbeatReceived r |> AppMsg)
-                        , Api.configRequest (\r -> ConfigReceived r |> AppMsg)
+                        [ Api.heartbeatRequest default_host (\r -> HeartbeatReceived r |> AppMsg)
+                        , Api.configRequest default_host (\r -> ConfigReceived r |> AppMsg)
                         ]
                     )
 
