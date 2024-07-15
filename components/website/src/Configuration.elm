@@ -3,10 +3,11 @@ module Configuration exposing (..)
 import Common exposing (ConfigPair, Configuration, Msg(..))
 import Element exposing (Element, centerX, centerY, column, el, fill, height, px, row, text, width)
 import Element.Background as Background
+import Element.Border
 import Element.Font as Font
 import Element.Input as Input
 import Pages.Dashboard exposing (view)
-import UiUtil exposing (pageTitle, pallete, textModifiedLabel)
+import UiUtil exposing (pageTitle, pallete, textModifiedLabel, tooltip)
 
 
 view : Maybe ConfigPair -> Element Msg
@@ -19,20 +20,55 @@ view mcp =
             viewActual cfgs
 
 
+inFrontRight : Element msg -> Element.Attribute msg
+inFrontRight e =
+    el [ Element.inFront e ] Element.none |> Element.onRight
+
+
+labelWithQuestionTooltip : String -> Element Never -> Input.Label msg
+labelWithQuestionTooltip label ttext =
+    Input.labelLeft
+        [ tooltip inFrontRight
+            (ttext
+                |> el
+                    [ Background.color pallete.black
+                    , Element.padding 10
+                    , Element.Border.rounded 10
+                    , Font.size 15
+                    ]
+            )
+        ]
+    <|
+        row [ Element.spacing 5 ] [ text label, text "(?)" ]
+
+
+useMdnsLabel =
+    labelWithQuestionTooltip "Use mDNS" <|
+        column [] [ text "Use Multicast DNS to give the Vex Debug Board a helpful name.", text "Without this, you will need to know the IP address of the board", text "(may not work on some computers)" ]
+
+
 viewActual : ConfigPair -> Element Msg
 viewActual cfgs =
     let
-        initial_config =
-            cfgs.initial
-
+        -- initial_config =
+        --     cfgs.initial
         config =
             cfgs.current
+
+        a =
+            3
     in
     column [ width fill, height fill, Element.paddingXY 10 10 ]
         [ pageTitle "Configuration"
+        , Input.checkbox []
+            { onChange = \s -> Common.EditConfig { config | use_mdns = s }
+            , icon = Input.defaultCheckbox
+            , checked = config.use_mdns
+            , label = useMdnsLabel
+            }
 
         -- , viewWifi cfgs.current cfgs.initial |> Element.map (\wifi -> { config | wifi = wifi } |> EditConfig)
-        , saveButton (config /= initial_config) False
+        -- , saveButton (config /= initial_config) False
         ]
 
 

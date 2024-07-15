@@ -21,11 +21,11 @@ type MModel
     | Connected Model
 
 
-initialModel : Api.SysInfo -> Model
+initialModel : Common.SysInfo -> Model
 initialModel info =
     { page = Dashboard
     , configs = Nothing
-    , board_status = Api.StatusOkay { uptimems = 0 }
+    , board_status = Common.StatusOkay { uptimems = 0 }
     , sysinfo = info
     }
 
@@ -42,7 +42,7 @@ statusTextAndImage status img tooltip =
     row attrs [ el [ Font.size 18, centerY, Font.color pallete.darkgray ] (text status), img ]
 
 
-viewGoodStatus : Api.HeartbeatResponse -> Element msg
+viewGoodStatus : Common.HeartbeatResponse -> Element msg
 viewGoodStatus status =
     let
         popup =
@@ -78,13 +78,13 @@ viewBadStatus e =
     statusTextAndImage "Disconnected" UiUtil.errorIcon (Just <| text errtext)
 
 
-viewStatus : Api.BoardStatus -> Element msg
+viewStatus : Common.BoardStatus -> Element msg
 viewStatus status =
     case status of
-        Api.StatusOkay s ->
+        Common.StatusOkay s ->
             viewGoodStatus s
 
-        Api.StatusErrored e ->
+        Common.StatusErrored e ->
             viewBadStatus e
 
 
@@ -102,19 +102,27 @@ update msg model =
             )
 
         HeatbeatTick _ ->
-            ( model, Api.heartbeatRequest model.sysinfo.ip HeartbeatReceived )
+            ( model, Api.heartbeatRequest HeartbeatReceived )
 
         HeartbeatReceived res ->
             let
                 newstatus =
                     case res of
                         Err e ->
-                            Api.StatusErrored e
+                            Common.StatusErrored e
 
                         Ok hr ->
-                            Api.StatusOkay hr
+                            Common.StatusOkay hr
             in
             ( { model | board_status = newstatus }, Cmd.none )
+
+        ConfigReceived res ->
+            case res of
+                Err e ->
+                    Debug.todo "bad config response"
+
+                Ok cfg ->
+                    ( { model | configs = Just { initial = cfg, current = cfg } }, Cmd.none )
 
 
 menu_items : List ( String, Page )
@@ -254,7 +262,12 @@ mupdate rinfo mmodel =
                     )
 
                 Ok info ->
-                    ( Connected (initialModel info), Api.heartbeatRequest info.ip (\r -> HeartbeatReceived r |> AppMsg) )
+                    ( Connected (initialModel info)
+                    , Cmd.batch
+                        [ Api.heartbeatRequest (\r -> HeartbeatReceived r |> AppMsg)
+                        , Api.configRequest (\r -> ConfigReceived r |> AppMsg)
+                        ]
+                    )
 
         AppMsg msg ->
             case mmodel of
@@ -281,5 +294,5 @@ mview mmod =
 
 
 type MMsg
-    = SysinfoReceived (Result Http.Error Api.SysInfo)
+    = SysinfoReceived (Result Http.Error Common.SysInfo)
     | AppMsg Msg

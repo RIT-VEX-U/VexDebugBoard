@@ -1,10 +1,9 @@
 module Pages.Dashboard exposing (..)
 
-import Api
 import Common exposing (Model)
-import Element exposing (Element, column, el, fill, height, row, text, width)
+import Element exposing (Element, column, el, fill, height, text, width)
 import Element.Font as Font
-import UiUtil exposing (br, pageTitle)
+import UiUtil exposing (pageTitle)
 
 
 view : Model -> Element msg
@@ -16,7 +15,7 @@ view mod =
         ]
 
 
-viewSysInfo : Api.SysInfo -> Element msg
+viewSysInfo : Common.SysInfo -> Element msg
 viewSysInfo info =
     column [ Element.spacingXY 0 10, Element.paddingXY 10 10 ]
         [ text ("IP Address: " ++ info.ip)

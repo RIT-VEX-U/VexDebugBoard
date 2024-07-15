@@ -1,6 +1,5 @@
 module Common exposing (..)
 
-import Api
 import Http
 import Time
 
@@ -21,7 +20,7 @@ type alias WifiConfig =
 
 
 type alias Configuration =
-    { use_mdns : Bool, mdns_hostname : String, trial_wifi : WifiConfig, last_known_good_wifi : WifiConfig }
+    { use_mdns : Bool, mdns_hostname : String, trial_run : Bool }
 
 
 type Page
@@ -36,15 +35,29 @@ type Msg
     = Goto Page
     | EditConfig Configuration
     | HeatbeatTick Time.Posix
-    | HeartbeatReceived (Result Http.Error Api.HeartbeatResponse)
+    | HeartbeatReceived (Result Http.Error HeartbeatResponse)
+    | ConfigReceived (Result Http.Error Configuration)
 
 
 type alias Model =
     { page : Page
     , configs : Maybe ConfigPair
-    , board_status : Api.BoardStatus
-    , sysinfo : Api.SysInfo
+    , board_status : BoardStatus
+    , sysinfo : SysInfo
     }
+
+
+type alias SysInfo =
+    { esp_version : String, sw_version : String, model : String, cores : Int, ip : String, bootcount : Int }
+
+
+type alias HeartbeatResponse =
+    { uptimems : Int }
+
+
+type BoardStatus
+    = StatusOkay HeartbeatResponse
+    | StatusErrored Http.Error
 
 
 type alias ConfigPair =

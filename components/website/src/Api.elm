@@ -1,12 +1,8 @@
 module Api exposing (..)
 
+import Common exposing (Configuration, HeartbeatResponse, SysInfo)
 import Http
-import Json.Decode as D exposing (Decoder, decodeString)
-
-
-type BoardStatus
-    = StatusOkay HeartbeatResponse
-    | StatusErrored Http.Error
+import Json.Decode as D exposing (Decoder)
 
 
 getToIP : String -> { path : String, expect : Http.Expect msg } -> Cmd msg
@@ -14,12 +10,12 @@ getToIP host data =
     Http.get { url = "http://" ++ host ++ data.path, expect = data.expect }
 
 
-getToIpWithTimeout : Float -> String -> { path : String, expect : Http.Expect msg } -> Cmd msg
-getToIpWithTimeout timout host data =
+getWithTimeout : Float -> { path : String, expect : Http.Expect msg } -> Cmd msg
+getWithTimeout timout data =
     Http.request
         { method = "GET"
         , headers = []
-        , url = "http://" ++ host ++ data.path
+        , url = data.path
         , body = Http.emptyBody
         , timeout = Just timout
         , expect = data.expect
@@ -27,17 +23,14 @@ getToIpWithTimeout timout host data =
         }
 
 
-type alias HeartbeatResponse =
-    { uptimems : Int }
+heartbeatRequest : (Result Http.Error HeartbeatResponse -> msg) -> Cmd msg
+heartbeatRequest onget =
+    getWithTimeout 1000 { path = "/api/heartbeat", expect = Http.expectJson onget parseHeartbeatResponse }
 
 
-heartbeatRequest : String -> (Result Http.Error HeartbeatResponse -> msg) -> Cmd msg
-heartbeatRequest host onget =
-    getToIpWithTimeout 1000 host { path = "/api/heartbeat", expect = Http.expectJson onget parseHeartbeatResponse }
-
-
-type alias SysInfo =
-    { esp_version : String, sw_version : String, model : String, cores : Int, ip : String, bootcount : Int }
+configRequest : (Result Http.Error Configuration -> msg) -> Cmd msg
+configRequest onget =
+    Http.get { url = "/api/config", expect = Http.expectJson onget parseConfiguration }
 
 
 sysInfoRequest : String -> (Result Http.Error SysInfo -> msg) -> Cmd msg
@@ -54,3 +47,8 @@ parseSysinfoResponse =
 parseHeartbeatResponse : Decoder HeartbeatResponse
 parseHeartbeatResponse =
     D.map HeartbeatResponse (D.field "uptimems" D.int)
+
+
+parseConfiguration : Decoder Configuration
+parseConfiguration =
+    D.map3 Configuration (D.field "use_mdns" D.bool) (D.field "mdns_hostname" D.string) (D.field "trial_run" D.bool)
