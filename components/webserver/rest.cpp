@@ -1,9 +1,11 @@
 #include "rest.hpp"
 #include "cJSON.h"
 #include "common.hpp"
+#include <esp_check.h>
 #include <esp_chip_info.h>
 #include <esp_log.h>
 #include <esp_timer.h>
+
 static const char *TAG = "api";
 
 const char *chip_model_to_string(esp_chip_model_t model) {
@@ -85,10 +87,44 @@ httpd_uri_t heartbeat_get = {
     .user_ctx = NULL,
 };
 
+esp_err_t config_get_handler(httpd_req_t *req) {
+  VDBConfig config = get_config();
+
+  cJSON *root = cJSON_CreateObject();
+
+  cJSON_AddBoolToObject(root, "use_mdns", config.use_mdns);
+  cJSON_AddStringToObject(root, "mdns_hostname", config.mdns_hostname.c_str());
+  cJSON_AddBoolToObject(root, "trial_run", config.trial_run);
+
+  // cJSON_AddObjectToObject()
+
+  const char *json_str = cJSON_Print(root);
+
+  ESP_ERROR_CHECK(httpd_resp_set_type(req, "application/json"));
+  esp_err_t err = httpd_resp_send(req, json_str, HTTPD_RESP_USE_STRLEN);
+
+  // Cleanup
+  cJSON_Delete(root);
+  cJSON_free((void *)json_str);
+  return err;
+}
+
+httpd_uri_t config_get = {
+    .uri = "/api/config",
+    .method = HTTP_GET,
+    .handler = config_get_handler,
+    .user_ctx = NULL,
+};
+
 esp_err_t init_rest_server(httpd_handle_t server) {
 
-  ESP_ERROR_CHECK(httpd_register_uri_handler(server, &sysinfo_get));
-  ESP_ERROR_CHECK(httpd_register_uri_handler(server, &heartbeat_get));
+  ESP_RETURN_ON_ERROR(httpd_register_uri_handler(server, &sysinfo_get), TAG,
+                      "Failed to init GET handler for /api/sysinfo");
+  ESP_RETURN_ON_ERROR(httpd_register_uri_handler(server, &heartbeat_get), TAG,
+                      "Failed to init GET handler for /api/heartbeat");
+
+  ESP_RETURN_ON_ERROR(httpd_register_uri_handler(server, &config_get), TAG,
+                      "Failed to init GET handler for /api/VDBConfig");
 
   ESP_LOGI(TAG, "REST server started");
   return ESP_OK;

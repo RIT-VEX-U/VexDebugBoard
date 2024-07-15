@@ -1,6 +1,6 @@
 module Configuration exposing (..)
 
-import Common exposing (ConfigPair, Configuration, Msg(..), WifiSetup)
+import Common exposing (ConfigPair, Configuration, Msg(..))
 import Element exposing (Element, centerX, centerY, column, el, fill, height, px, row, text, width)
 import Element.Background as Background
 import Element.Font as Font
@@ -30,7 +30,8 @@ viewActual cfgs =
     in
     column [ width fill, height fill, Element.paddingXY 10 10 ]
         [ pageTitle "Configuration"
-        , viewWifi cfgs.current cfgs.initial |> Element.map (\wifi -> { config | wifi = wifi } |> EditConfig)
+
+        -- , viewWifi cfgs.current cfgs.initial |> Element.map (\wifi -> { config | wifi = wifi } |> EditConfig)
         , saveButton (config /= initial_config) False
         ]
 
@@ -79,30 +80,29 @@ isValidHostname hn =
     badStart || anyBadChars |> not
 
 
-viewWifi : Configuration -> Configuration -> Element WifiSetup
-viewWifi cfg initial =
-    let
-        wifi =
-            cfg.wifi
 
-        iwifi =
-            initial.wifi
-    in
-    row []
-        [ textModifiedLabel "Hostname: " (wifi.hostname /= iwifi.hostname)
-        , Input.text [ Font.color pallete.black, Font.alignRight ]
-            { label = ".local" |> text |> Input.labelRight []
-            , onChange =
-                \newname ->
-                    { wifi
-                        | hostname =
-                            if isValidHostname newname then
-                                newname
-
-                            else
-                                wifi.hostname
-                    }
-            , placeholder = Nothing
-            , text = wifi.hostname
-            }
-        ]
+-- viewWifi : Configuration -> Configuration -> Element WifiSetup
+-- viewWifi cfg initial =
+--     let
+--         wifi =
+--             cfg.wifi
+--         iwifi =
+--             initial.wifi
+--     in
+--     row []
+--         [ textModifiedLabel "Hostname: " (wifi.hostname /= iwifi.hostname)
+--         , Input.text [ Font.color pallete.black, Font.alignRight ]
+--             { label = ".local" |> text |> Input.labelRight []
+--             , onChange =
+--                 \newname ->
+--                     { wifi
+--                         | hostname =
+--                             if isValidHostname newname then
+--                                 newname
+--                             else
+--                                 wifi.hostname
+--                     }
+--             , placeholder = Nothing
+--             , text = wifi.hostname
+--             }
+--         ]

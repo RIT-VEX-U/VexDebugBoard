@@ -53,3 +53,24 @@ esp_err_t init_nvs() {
 }
 
 uint32_t get_bootcount() { return bootcount; }
+
+static constexpr wifi_cfg default_wifi_config = {
+    .use_ap = true,
+    .sta =
+        {
+            .ssid = "your wifi ssid",
+            .password = "your password",
+        },
+    .ap = {.ssid = "Vex Debug Board"},
+};
+
+static constexpr VDBConfig default_config = {
+    .use_mdns = true,
+    .mdns_hostname = "debug.local",
+
+    .trial_run = false,
+    .trial_wifi = default_wifi_config,
+    .last_known_good_wifi = default_wifi_config,
+};
+
+VDBConfig get_config() { return default_config; }

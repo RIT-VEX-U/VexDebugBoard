@@ -5,17 +5,23 @@ import Http
 import Time
 
 
-type alias WifiSetup =
-    { mode : WifiMode, hostname : String }
+type alias StationConfig =
+    { ssid : String, password : String }
 
 
-type WifiMode
-    = AP
-    | STA
+type alias APConfig =
+    {}
+
+
+type alias WifiConfig =
+    { use_ap : Bool
+    , station_cfg : StationConfig
+    , ap_cfg : APConfig
+    }
 
 
 type alias Configuration =
-    { wifi : WifiSetup, numToSave : Int }
+    { use_mdns : Bool, mdns_hostname : String, trial_wifi : WifiConfig, last_known_good_wifi : WifiConfig }
 
 
 type Page

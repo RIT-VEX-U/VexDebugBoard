@@ -1,3 +1,4 @@
+#include "config.hpp"
 #include <array>
 #include <cstdint>
 #include <esp_netif_types.h>
@@ -13,5 +14,10 @@ const char *get_ip_str();
 
 const char *get_sw_version();
 
+// NVS stuff
+
+// Load bootcount and settings
 esp_err_t init_nvs();
 uint32_t get_bootcount();
+
+VDBConfig get_config();

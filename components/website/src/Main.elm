@@ -3,8 +3,8 @@ module Main exposing (main)
 import Api
 import Browser exposing (Document)
 import Common exposing (Model, Msg(..), Page(..))
-import Configuration exposing (viewWifi)
-import Element exposing (Element, alignRight, centerX, centerY, column, el, fill, fillPortion, height, px, rgb255, row, shrink, text, width)
+import Configuration
+import Element exposing (Element, alignRight, centerX, centerY, column, el, fill, fillPortion, height, px, rgb255, row, shrink, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
@@ -17,7 +17,7 @@ import UiUtil exposing (pageTitle, pallete)
 
 
 type MModel
-    = NotConnected String
+    = NotConnected (List String)
     | Connected Model
 
 
@@ -203,11 +203,40 @@ default_host =
 main : Program () MModel MMsg
 main =
     Browser.document
-        { init = \_ -> ( NotConnected "Connecting...", Api.sysInfoRequest default_host SysinfoReceived )
+        { init = \_ -> ( NotConnected [ "Connecting..." ], Api.sysInfoRequest default_host SysinfoReceived )
         , view = mview
         , update = mupdate
-        , subscriptions = \_ -> Time.every 3000 (\t -> HeatbeatTick t |> AppMsg)
+        , subscriptions = subscriptions
         }
+
+
+subscriptions : MModel -> Sub MMsg
+subscriptions model =
+    case model of
+        NotConnected _ ->
+            Sub.none
+
+        Connected _ ->
+            Time.every 3000 (\t -> HeatbeatTick t |> AppMsg)
+
+
+describeHttpError : Http.Error -> String
+describeHttpError e =
+    case e of
+        Http.NetworkError ->
+            "Network Error. Is the board on? Are you connected to the same Wifi Network?"
+
+        Http.BadUrl str ->
+            "Bad URL: " ++ str
+
+        Http.Timeout ->
+            "Timed out: Is the board on? Are you connected to the same Wifi Network?"
+
+        Http.BadStatus code ->
+            "Received a bad status: " ++ String.fromInt code
+
+        Http.BadBody str ->
+            "Bad Body: " ++ str
 
 
 mupdate : MMsg -> MModel -> ( MModel, Cmd MMsg )
@@ -216,15 +245,21 @@ mupdate rinfo mmodel =
         SysinfoReceived res ->
             case res of
                 Err e ->
-                    ( NotConnected "An unknown error connecting to the board occured. Reload?", Cmd.none )
+                    ( NotConnected
+                        [ "An error occured while connecting to the board"
+                        , describeHttpError e
+                        , "When you've made sure, reload this page."
+                        ]
+                    , Cmd.none
+                    )
 
                 Ok info ->
                     ( Connected (initialModel info), Api.heartbeatRequest info.ip (\r -> HeartbeatReceived r |> AppMsg) )
 
         AppMsg msg ->
             case mmodel of
-                NotConnected s ->
-                    ( NotConnected ("Something bad happened: " ++ s), Api.sysInfoRequest default_host SysinfoReceived )
+                NotConnected log ->
+                    ( NotConnected (List.append log [ Debug.toString msg ]), Api.sysInfoRequest default_host SysinfoReceived )
 
                 Connected model ->
                     update msg model
@@ -236,7 +271,7 @@ mview : MModel -> Document MMsg
 mview mmod =
     (case mmod of
         NotConnected s ->
-            text s |> el [ Font.color pallete.font, centerX, centerY, width fill, height fill ]
+            List.map text s |> column [ spacing 5 ] |> el [ Font.color pallete.font, centerX, centerY, width fill, height fill ]
 
         Connected mod ->
             view mod
