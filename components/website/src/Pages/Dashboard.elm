@@ -4,7 +4,7 @@ import Api
 import Common exposing (Model)
 import Element exposing (Element, column, el, fill, height, row, text, width)
 import Element.Font as Font
-import UiUtil exposing (pageTitle)
+import UiUtil exposing (br, pageTitle)
 
 
 view : Model -> Element msg
@@ -20,6 +20,8 @@ viewSysInfo : Api.SysInfo -> Element msg
 viewSysInfo info =
     column [ Element.spacingXY 0 10, Element.paddingXY 10 10 ]
         [ text ("IP Address: " ++ info.ip)
+        , text ("Boot count: " ++ String.fromInt info.bootcount)
+        , text " "
         , text ("Software version: " ++ info.sw_version)
         , text ("ESP version: " ++ info.esp_version)
         , text ("Chip Model: " ++ info.model)

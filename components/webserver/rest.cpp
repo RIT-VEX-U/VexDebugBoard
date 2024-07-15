@@ -41,6 +41,7 @@ esp_err_t sysinfo_handler(httpd_req_t *req) {
   cJSON_AddStringToObject(root, "model", chip_model_to_string(chip_info.model));
   cJSON_AddNumberToObject(root, "cores", chip_info.cores);
   cJSON_AddStringToObject(root, "ip", get_ip_str());
+  cJSON_AddNumberToObject(root, "bootcount", get_bootcount());
 
   // or print unformatted, save a couple bytes worth of spaces
   const char *json_str = cJSON_Print(root);

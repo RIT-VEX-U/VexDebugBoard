@@ -2,7 +2,13 @@ module UiUtil exposing (..)
 
 import Element exposing (Attribute, Element, centerY, column, el, fill, height, htmlAttribute, inFront, mouseOver, rgb255, row, shrink, text, transparent, width)
 import Element.Font as Font
+import Html
 import Html.Attributes
+
+
+br : Element msg
+br =
+    Element.html <| Html.br [] []
 
 
 h1size : number

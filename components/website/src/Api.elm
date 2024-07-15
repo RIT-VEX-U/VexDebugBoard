@@ -37,7 +37,7 @@ heartbeatRequest host onget =
 
 
 type alias SysInfo =
-    { esp_version : String, sw_version : String, model : String, cores : Int, ip : String }
+    { esp_version : String, sw_version : String, model : String, cores : Int, ip : String, bootcount : Int }
 
 
 sysInfoRequest : String -> (Result Http.Error SysInfo -> msg) -> Cmd msg
@@ -48,7 +48,7 @@ sysInfoRequest host onget =
 
 parseSysinfoResponse : Decoder SysInfo
 parseSysinfoResponse =
-    D.map5 SysInfo (D.field "esp_version" D.string) (D.field "sw_version" D.string) (D.field "model" D.string) (D.field "cores" D.int) (D.field "ip" D.string)
+    D.map6 SysInfo (D.field "esp_version" D.string) (D.field "sw_version" D.string) (D.field "model" D.string) (D.field "cores" D.int) (D.field "ip" D.string) (D.field "bootcount" D.int)
 
 
 parseHeartbeatResponse : Decoder HeartbeatResponse
