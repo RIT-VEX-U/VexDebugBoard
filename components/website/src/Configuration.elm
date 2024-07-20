@@ -80,7 +80,7 @@ viewActual cfgs =
             Element.none
 
         -- , viewWifi cfgs.current cfgs.initial |> Element.map (\wifi -> { config | wifi = wifi } |> EditConfig)
-        , saveButton (config /= initial_config) False
+        , saveButton (isConfigValid cfgs)
         ]
 
 
@@ -101,27 +101,40 @@ hostnameEdit config =
         ]
 
 
-saveButton : Bool -> Bool -> Element msg
-saveButton needsSave needsRestart =
+isConfigValid : ConfigPair -> { valid : Bool, needs_save : Bool }
+isConfigValid { current, initial } =
     let
-        text =
-            if needsRestart then
-                "Save and Restart"
+        needs_save =
+            current /= initial
 
-            else
-                "Save"
+        mdns_valid =
+            not current.use_mdns || (current.use_mdns && String.endsWith ".local" current.mdns_hostname)
     in
-    if needsSave then
-        Input.button
-            [ Background.color pallete.nonselectedPage
-            , Element.padding 5
-            , centerX
-            , Element.alignBottom
-            , padding 15
-            , Font.size 25
-            , Border.rounded 10
-            ]
-            { label = Element.text text, onPress = Nothing }
+    { valid = mdns_valid, needs_save = needs_save }
+
+
+saveButton : { valid : Bool, needs_save : Bool } -> Element msg
+saveButton { valid, needs_save } =
+    let
+        button_style more_styles =
+            Input.button <|
+                List.append
+                    [ Background.color pallete.nonselectedPage
+                    , Element.padding 5
+                    , centerX
+                    , Element.alignBottom
+                    , padding 15
+                    , Font.size 25
+                    , Border.rounded 10
+                    ]
+                    more_styles
+    in
+    if needs_save then
+        if valid then
+            button_style [] { label = Element.text "Save", onPress = Nothing }
+
+        else
+            button_style [ Font.color pallete.red ] { label = Element.text "Fix Errors Then Save", onPress = Nothing }
 
     else
         Element.none
