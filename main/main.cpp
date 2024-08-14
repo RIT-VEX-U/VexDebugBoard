@@ -4,7 +4,7 @@
 #include "webserver.hpp"
 
 #include "common.hpp"
-// #include "vdb_device.h"
+#include "vdb_device.h"
 #include <driver/uart.h>
 #include <esp_err.h>
 #include <esp_http_server.h>
@@ -17,20 +17,14 @@ bool setup_finished = false;
 // Note: Some pins on target chip cannot be assigned for UART communication.
 // Please refer to documentation for selected board and target to configure pins
 // using Kconfig.
-#define CONFIG_ECHO_UART_TXD 6
-#define CONFIG_ECHO_UART_RXD 7
-#define CONFIG_ECHO_UART_RTS 10
+#define BRAIN_UART_TXD 6
+#define BRAIN_UART_RXD 7
+#define BRAIN_UART_RTS 10
 
-#define ECHO_TEST_TXD (CONFIG_ECHO_UART_TXD)
-#define ECHO_TEST_RXD (CONFIG_ECHO_UART_RXD)
+// CTS is not used in RS485 Half - Duplex Mode
+// #define ECHO_TEST_CTS (UART_PIN_NO_CHANGE)
 
-// RTS for RS485 Half-Duplex Mode manages DE/~RE
-#define ECHO_TEST_RTS (CONFIG_ECHO_UART_RTS)
-
-// CTS is not used in RS485 Half-Duplex Mode
-#define ECHO_TEST_CTS (UART_PIN_NO_CHANGE)
-
-#define BAUD_RATE 115200
+#define BRAIN_BAUD_RATE 115200
 #define BRAIN_UART UART_NUM_1
 
 // Read packet timeout
@@ -38,12 +32,7 @@ bool setup_finished = false;
 #define ECHO_TASK_STACK_SIZE (2048)
 #define ECHO_TASK_PRIO (10)
 
-static void echo_send(const uart_port_t port, const char *str, uint8_t length) {
-  int got = uart_write_bytes(port, str, length);
-  if (got != length) {
-    ESP_LOGE(TAG, "Send data critical failure.. Tried %d got %d", length, got);
-  }
-}
+VDP::Registry reg;
 
 extern "C" void app_main(void) {
 
@@ -62,7 +51,9 @@ extern "C" void app_main(void) {
   init_mdns();
 
   ESP_LOGI(TAG, "Initializing Serial Connection...");
-  // init_serial();
+  esp_err_t e = init_serial(BRAIN_UART, BRAIN_UART_TXD, BRAIN_UART_RXD,
+                            BRAIN_UART_RTS, BRAIN_BAUD_RATE, reg);
+  ESP_ERROR_CHECK(e);
 
   httpd_handle_t server_handle = webserver_start(80);
   if (server_handle == NULL) {
@@ -73,28 +64,6 @@ extern "C" void app_main(void) {
   setup_finished = true;
 
   status_led_signal_wifi_conn();
-
-  // // Allocate buffers for UART
-  // uint8_t *data = (uint8_t *)malloc(BUF_SIZE);
-  // ESP_LOGI(TAG, "UART start recieve loop.\r");
-  // while (1) {
-
-  //   // Read data from UART
-  //   int len = uart_read_bytes(BRAIN_UART, data, BUF_SIZE, PACKET_READ_TICS);
-
-  //   // Write data back to UART
-  //   if (len > 0) {
-  //     ESP_LOGI(TAG, "Received %u bytes:", len);
-  //     printf("[ ");
-  //     for (int i = 0; i < len; i++) {
-  //       printf("0x%.2X ", (uint8_t)data[i]);
-  //       echo_send(BRAIN_UART, "eaea", 4);
-  //     }
-  //     printf("] \n");
-  //   } else {
-  //     ESP_ERROR_CHECK(uart_wait_tx_done(BRAIN_UART, 10));
-  //   }
-  // }
 
   while (true) {
 

@@ -93,7 +93,7 @@ void PacketWriter::write_channel_broadcast(const Channel &chan) {
   chan.data->write_schema(*this);
 
   // Checksum
-  auto crc = VDP::crc32_buf(0, sofar.data(), sofar.size());
+  auto crc = VDP::crc32_buf(0xFFFFFFFF, sofar.data(), sofar.size());
   write_number<uint32_t>(crc);
 }
 void PacketWriter::write_message(const Channel &chan) {
@@ -106,7 +106,7 @@ void PacketWriter::write_message(const Channel &chan) {
   // Data
   chan.data->write_message(*this);
   // Checksum
-  auto crc = VDP::crc32_buf(0, sofar.data(), sofar.size());
+  auto crc = VDP::crc32_buf(0xFFFFFFFF, sofar.data(), sofar.size());
   write_number<uint32_t>(crc);
 }
 
