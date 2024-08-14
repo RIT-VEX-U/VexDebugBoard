@@ -96,8 +96,9 @@ esp_err_t init_serial(uart_port_t uart_num, int tx_num, int rx_num, int rts_num,
                       "Failed to set UART config");
 
   // Set UART pins as per KConfig settings
-  ESP_RETURN_ON_ERROR(uart_set_pin(uart_num, tx_num, rx_num, rts_num, rts_num),
-                      TAG, "Failed to set UART Pins");
+  ESP_RETURN_ON_ERROR(
+      uart_set_pin(uart_num, tx_num, rx_num, rts_num, UART_PIN_NO_CHANGE), TAG,
+      "Failed to set UART Pins");
 
   // Set RS485 half duplex mode
   ESP_RETURN_ON_ERROR(uart_set_mode(uart_num, UART_MODE_RS485_HALF_DUPLEX), TAG,
