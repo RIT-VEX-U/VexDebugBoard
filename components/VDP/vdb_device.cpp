@@ -44,32 +44,6 @@ extern "C" void reader_thread(void *ptr) {
     // sleep(1);
   }
 }
-// extern "C" void writer_thread(void *ptr) {
-//   ESP_LOGI(TAG, "Writer thread began");
-//   HardwareThreadData data = *(HardwareThreadData *)ptr;
-
-//   VDP::PartPtr schema{new VDP::Float("asdf", []() { return 1.0; })};
-
-//   VDP::PacketWriter writ{};
-//   writ.write_channel_broadcast({1, schema});
-//   VDB::WirePacket encoded;
-//   VDB::CobsEncode(writ.get_packet(), encoded);
-
-//   // data.reg.
-
-//   while (true) {
-//     uart_write_bytes(data.uart, encoded.data(), encoded.size());
-//     vTaskDelay(0x2F);
-//   }
-// }
-// static void echo_send(const uart_port_t port, const char *str, uint8_t
-// length) {
-//   int got = uart_write_bytes(port, str, length);
-//   if (got != length) {
-//     ESP_LOGE(TAG, "Send data critical failure.. Tried %d got %d", length,
-//     got);
-//   }
-// }
 
 esp_err_t init_serial(uart_port_t uart_num, int tx_num, int rx_num, int rts_num,
                       int baud, VDP::Registry &reg) {
