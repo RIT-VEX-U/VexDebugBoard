@@ -57,6 +57,14 @@ httpd_uri_t elm_min_js_get = {
     .user_ctx = &elm_min_js,
 };
 
+struct flash_file favicon_ico;
+httpd_uri_t favicon_ico_get = {
+    .uri = "/favicon.ico",
+    .method = HTTP_GET,
+    .handler = file_get_handler,
+    .user_ctx = &favicon_ico,
+};
+
 /**
  * @brief Function for starting the webserver
  * @pre mDNS is initialized
@@ -86,6 +94,14 @@ httpd_handle_t webserver_start(uint16_t port) {
   ESP_LOGI(TAG, "Initialized %s of size %d to %p", elm_min_js.name,
            elm_min_js.size, elm_min_js.buf);
 
+  favicon_ico.name = "favicon.ico";
+  favicon_ico.buf = get_favicon();
+  favicon_ico.size = get_favicon_size();
+  favicon_ico.type = "image/png";
+  favicon_ico.gzipped = false;
+  ESP_LOGI(TAG, "Initialized %s of size %d to %p", favicon_ico.name,
+           favicon_ico.size, favicon_ico.buf);
+
   /* Empty handle to esp_http_server */
   httpd_handle_t server = NULL;
 
@@ -100,6 +116,7 @@ httpd_handle_t webserver_start(uint16_t port) {
   // UI Files
   ESP_ERROR_CHECK(httpd_register_uri_handler(server, &index_get));
   ESP_ERROR_CHECK(httpd_register_uri_handler(server, &elm_min_js_get));
+  ESP_ERROR_CHECK(httpd_register_uri_handler(server, &favicon_ico_get));
   // 404 Page
   ESP_ERROR_CHECK(httpd_register_err_handler(server, HTTPD_404_NOT_FOUND,
                                              &http_404_error_handler));

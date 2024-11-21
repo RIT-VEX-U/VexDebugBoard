@@ -1,6 +1,6 @@
 #include "vdb_device.h"
-#include "protocol.h"
-#include "types.h"
+#include "vdb/protocol.hpp"
+#include "vdb/types.hpp"
 
 #include "esp_check.h"
 #include "esp_crc.h"
@@ -11,6 +11,8 @@
 #include <cstdio>
 #include <mutex>
 #include <vector>
+
+#include "esp_timer.h"
 
 static constexpr const char *TAG = "VDB";
 
@@ -102,6 +104,8 @@ uint32_t crc32_buf(uint32_t accum, const uint8_t *b, uint32_t length) {
 }
 } // namespace VDP
 namespace VDB {
+uint32_t time_ms() { return esp_timer_get_time() / 1000; }
+void delay_ms(uint32_t ms) { vTaskDelay(ms / portTICK_PERIOD_MS); }
 
 void CobsEncode(const VDP::Packet &in, WirePacket &out) {
   out.clear();

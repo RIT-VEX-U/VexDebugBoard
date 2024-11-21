@@ -26,6 +26,8 @@ const char *chip_model_to_string(esp_chip_model_t model) {
     return "ESP32H2";
   case CHIP_ESP32P4:
     return "ESP32P4";
+  case CHIP_ESP32C61:
+    return "CHIP_ESP32C61";
   case CHIP_POSIX_LINUX:
     return "POSIX_LINUX";
   }

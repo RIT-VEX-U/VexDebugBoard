@@ -1,4 +1,4 @@
-#include "types.h"
+#include "vdb/types.hpp"
 namespace VDP {
 
 Record::Record(std::string name, const std::vector<Part *> &parts)
@@ -43,9 +43,9 @@ void Record::write_message(PacketWriter &sofar) const {
   }
 }
 
-void Record::read_from_message(PacketReader &reader) {
+void Record::read_data_from_message(PacketReader &reader) {
   for (auto &f : fields) {
-    f->read_from_message(reader);
+    f->read_data_from_message(reader);
   }
 }
 
@@ -81,8 +81,8 @@ void Record::pprint_data(std::stringstream &ss, size_t indent) const {
   ss << "}\n";
 }
 
-String::String(std::string name, std::function<std::string()> fetcher)
-    : Part(std::move(name)), fetcher(std::move(fetcher)) {}
+String::String(std::string field_name, std::function<std::string()> fetcher)
+    : Part(std::move(field_name)), fetcher(std::move(fetcher)) {}
 
 void String::fetch() { value = fetcher(); }
 
@@ -97,7 +97,7 @@ void String::write_message(PacketWriter &sofar) const {
   sofar.write_string(value);
 }
 
-void String::read_from_message(PacketReader &reader) {
+void String::read_data_from_message(PacketReader &reader) {
   value = reader.get_string();
 }
 static constexpr auto PACKET_TYPE_BIT_LOCATION = 7;

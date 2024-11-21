@@ -1,10 +1,21 @@
 #pragma once
 
-#include "vdb/types.h"
+#include "vdb/types.hpp"
 #include <memory>
 
 #include "vex.h"
 namespace VDP {
+
+class Timestamped : public Record {
+public:
+  Timestamped(std::string name, Part *data);
+
+  void fetch();
+
+private:
+  std::shared_ptr<Uint32> timestamp;
+  PartPtr data;
+};
 
 class Motor : public Record {
 public:

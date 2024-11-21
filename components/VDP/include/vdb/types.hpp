@@ -1,6 +1,5 @@
 #pragma once
-#include "protocol.h"
-#include <functional>
+#include "vdb/protocol.hpp"
 
 namespace VDP {
 class Record : public Part {
@@ -9,14 +8,14 @@ class Record : public Part {
 
 public:
   using SizeT = uint32_t;
-  Record(std::string name);
+  explicit Record(std::string name);
   Record(std::string name, const std::vector<Part *> &fields);
   Record(std::string name, std::vector<PartPtr> fields);
   Record(std::string name, PacketReader &reader);
   void setFields(std::vector<PartPtr> fields);
 
   void fetch() override;
-  void read_from_message(PacketReader &reader) override;
+  void read_data_from_message(PacketReader &reader) override;
 
 protected:
   // Encode the schema itself for transmission on the wire
@@ -38,11 +37,12 @@ class String : public Part {
 
 public:
   using FetchFunc = std::function<std::string()>;
-  String(std::string name, FetchFunc fetcher = []() { return "no value"; });
+  explicit String(
+      std::string name, FetchFunc fetcher = []() { return "no value"; });
   void fetch() override;
   void setValue(std::string new_value);
 
-  void read_from_message(PacketReader &reader) override;
+  void read_data_from_message(PacketReader &reader) override;
 
   void pprint(std::stringstream &ss, size_t indent) const override;
   void pprint_data(std::stringstream &ss, size_t indent) const override;
@@ -73,12 +73,13 @@ public:
                 "or integral");
 
   using FetchFunc = std::function<NumberType()>;
-  Number(
-      std::string name, FetchFunc fetcher = []() { return (NumberType)0; })
-      : Part(name), fetcher(fetcher) {}
+  explicit Number(
+      std::string field_name,
+      FetchFunc fetcher = []() { return (NumberType)0; })
+      : Part(field_name), fetcher(fetcher) {}
 
   void fetch() override { value = fetcher(); }
-  void setValue(NumberType value) { this->value = value; }
+  void setValue(NumberType val) { this->value = val; }
 
   void pprint(std::stringstream &ss, size_t indent) const override {
     add_indents(ss, indent);
@@ -94,7 +95,7 @@ public:
       ss << value;
     }
   }
-  void read_from_message(PacketReader &reader) override {
+  void read_data_from_message(PacketReader &reader) override {
     value = reader.get_number<NumberType>();
   }
 
@@ -108,8 +109,8 @@ protected:
   }
 
 private:
-  NumberType value = (NumberType)0;
   FetchFunc fetcher;
+  NumberType value = (NumberType)0;
 };
 
 using Float = Number<float, Type::Float>;

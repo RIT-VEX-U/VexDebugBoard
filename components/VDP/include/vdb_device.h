@@ -1,7 +1,7 @@
 #pragma once
 #include "driver/uart.h"
 #include "esp_err.h"
-#include "registry.h"
+#include "vdb/registry.hpp"
 
 esp_err_t init_serial(uart_port_t uart_num, int tx_num, int rx_num, int rts_num,
                       int baud, VDP::Registry &reg);

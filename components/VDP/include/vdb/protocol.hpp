@@ -1,11 +1,40 @@
 #pragma once
+
 #include <array>
 #include <cstdio>
 #include <cstring>
+#include <functional>
 #include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
+
+namespace VDB {
+uint32_t time_ms();
+void delay_ms(uint32_t ms);
+} // namespace VDB
+
+// #define VDPTRACE
+// #define VDPDEBUG
+#define VDPWARN
+
+#ifdef VDPWARN
+#define VDPWarnf(fmt, ...) printf("WARN: " fmt "\n", __VA_ARGS__)
+#else
+#define VDPWarnf(...)
+#endif
+
+#ifdef VDPDEBUG
+#define VDPDebugf(fmt, ...) printf("DEBUG: " fmt "\n", __VA_ARGS__)
+#else
+#define VDPDebugf(...)
+#endif
+
+#ifdef VDPTRACE
+#define VDPTracef(fmt, ...) printf("TRACE: " fmt "\n", __VA_ARGS__)
+#else
+#define VDPTracef(...)
+#endif
 
 namespace VDP {
 constexpr size_t MAX_CHANNELS = 256;
@@ -16,18 +45,29 @@ uint32_t crc32_buf(uint32_t accum, const uint8_t *b, uint32_t length);
 
 class Part;
 using PartPtr = std::shared_ptr<Part>;
-
-using ChannelID = uint8_t;
-struct Channel {
-  ChannelID id;
-  PartPtr data;
-  bool is_valid() { return data != nullptr; }
-};
-
 using Packet = std::vector<uint8_t>;
 
+using ChannelID = uint8_t;
+class Channel {
+public:
+  friend class Registry;
+  explicit Channel(PartPtr schema_data) : data(schema_data) {}
+  PartPtr data;
+
+  ChannelID getID() const;
+
+private:
+  Channel(PartPtr schema_data, ChannelID channel_id)
+      : data(schema_data), id(channel_id) {}
+
+  ChannelID id = 0;
+  Packet packet_scratch_space;
+  bool acked = false;
+  // std::vector
+};
+
 void dump_packet(const Packet &pac);
-Channel decode_broadcast(const Packet &packet);
+std::pair<ChannelID, PartPtr> decode_broadcast(const Packet &packet);
 
 enum class PacketValidity : uint8_t {
   Ok,
@@ -86,12 +126,12 @@ class Part {
 
 public:
   Part(std::string name);
-  virtual ~Part() {}
+  virtual ~Part();
   std::string pretty_print() const;
   std::string pretty_print_data() const;
 
   virtual void fetch() = 0;
-  virtual void read_from_message(PacketReader &reader) = 0;
+  virtual void read_data_from_message(PacketReader &reader) = 0;
 
 protected:
   // These are needed to decode correctly but you shouldn't call them directly
@@ -119,9 +159,10 @@ public:
                   "This function should only be used on numbers");
 
     if (read_head + sizeof(Number) > pac.size()) {
-      printf("Reading a number[%d] at position %d would read past buffer of "
+      printf("%s:%d: Reading a number[%d] at position %d would read past "
+             "buffer of "
              "size %d\n",
-             sizeof(Number), read_head, pac.size());
+             __FILE__, __LINE__, sizeof(Number), read_head, pac.size());
       return 0;
     }
     Number value = 0;
@@ -137,6 +178,7 @@ private:
 
 class PacketWriter {
 public:
+  explicit PacketWriter(Packet &scratch_space);
   void clear();
   size_t size();
   void write_byte(uint8_t b);
@@ -144,12 +186,13 @@ public:
   void write_type(Type t);
   void write_string(const std::string &str);
 
+  void write_channel_acknowledge(const Channel &chan);
   void write_channel_broadcast(const Channel &chan);
-  void write_message(const Channel &part);
+  void write_data_message(const Channel &part);
 
   const Packet &get_packet() const;
 
-  template <typename Number> void write_number(Number num) {
+  template <typename Number> void write_number(const Number &num) {
     std::array<uint8_t, sizeof(Number)> bytes;
     std::memcpy(&bytes, &num, sizeof(Number));
     for (const uint8_t b : bytes) {
@@ -158,7 +201,19 @@ public:
   }
 
 private:
-  Packet sofar;
+  Packet &sofar;
+};
+
+class AbstractDevice {
+public:
+  virtual bool send_packet(const VDP::Packet &packet) = 0;
+
+  // @param callback a function that will be called when a new packet is
+  // available
+  virtual void register_receive_callback(
+      std::function<void(const VDP::Packet &packet)> callback) = 0;
+
+  virtual ~AbstractDevice();
 };
 
 } // namespace VDP

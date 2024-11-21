@@ -32,7 +32,17 @@ bool setup_finished = false;
 #define ECHO_TASK_STACK_SIZE (2048)
 #define ECHO_TASK_PRIO (10)
 
-VDP::Registry reg;
+class Device : public VDP::AbstractDevice {
+  bool send_packet(const VDP::Packet &packet) override { return false; };
+
+  // @param callback a function that will be called when a new packet is
+  // available
+  void register_receive_callback(
+      std::function<void(const VDP::Packet &packet)> callback) override {};
+};
+
+Device dev{};
+VDP::Registry reg{&dev, VDP::Registry::Listener};
 
 extern "C" void app_main(void) {
 
