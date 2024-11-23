@@ -1,4 +1,5 @@
 #include "vdb/registry.hpp"
+#include "vdb/types.hpp"
 
 namespace VDP {
 Registry::Registry(AbstractDevice *device, Side reg_type)

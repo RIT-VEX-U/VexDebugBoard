@@ -17,11 +17,6 @@
 
 static constexpr const char *TAG = "VDB";
 
-struct HardwareThreadData {
-  VDP::Registry &reg;
-  uart_port_t uart;
-};
-
 void VDBDevice::uart_event_task(void *pvParameters) {
   VDBDevice *self = (VDBDevice *)pvParameters;
   uart_port_t uart_num = self->uart_num;

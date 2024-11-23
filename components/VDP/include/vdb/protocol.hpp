@@ -1,5 +1,5 @@
 #pragma once
-#include "vdb/crc32.hpp"
+
 #include <array>
 #include <cstdio>
 #include <cstring>
@@ -8,6 +8,8 @@
 #include <sstream>
 #include <string>
 #include <vector>
+
+#include "vdb/crc32.hpp"
 
 namespace VDB {
 uint32_t time_ms();
@@ -112,6 +114,7 @@ void add_indents(std::stringstream &ss, size_t indent);
 
 class PacketReader;
 class PacketWriter;
+class Visitor;
 
 PartPtr make_decoder(PacketReader &pac);
 
@@ -128,6 +131,9 @@ public:
 
   virtual void fetch() = 0;
   virtual void read_data_from_message(PacketReader &reader) = 0;
+
+  std::string get_name() const;
+  virtual void Visit(Visitor *) const = 0;
 
 protected:
   // These are needed to decode correctly but you shouldn't call them directly

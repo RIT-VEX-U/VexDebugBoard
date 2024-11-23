@@ -1,8 +1,7 @@
 #pragma once
 #include "driver/uart.h"
 #include "esp_err.h"
-#include "vdb/registry.hpp"
-
+#include "vdb/protocol.hpp"
 class VDBDevice : public VDP::AbstractDevice {
 
 public:

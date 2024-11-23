@@ -1,4 +1,5 @@
 #include "vdb/protocol.hpp"
+#include "vdb/types.hpp"
 
 #include <cstdint>
 #include <cstring>
@@ -8,8 +9,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-
-#include "vdb/types.hpp"
 
 namespace VDP {
 void dump_packet(const Packet &pac) {
@@ -23,6 +22,8 @@ void dump_packet(const Packet &pac) {
   }
   printf("\n");
 }
+
+std::string Part::get_name() const { return name; }
 
 std::string Part::pretty_print() const {
   std::stringstream ss;

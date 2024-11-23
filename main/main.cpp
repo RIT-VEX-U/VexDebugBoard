@@ -4,7 +4,12 @@
 #include "webserver.hpp"
 
 #include "common.hpp"
+
+#include "vdb/registry.hpp"
+#include "vdb/types.hpp"
+
 #include "vdb_device.h"
+
 #include <driver/uart.h>
 #include <esp_err.h>
 #include <esp_http_server.h>
@@ -23,6 +28,29 @@ bool setup_finished = false;
 
 #define BRAIN_BAUD_RATE (115200 * 2)
 #define BRAIN_UART UART_NUM_1
+
+class JSONVisitor : public VDP::UpcastNumbersVisitor {
+public:
+  void VisitRecord(const VDP::Record *record) {
+    printf("got record\n");
+    for (const VDP::PartPtr &field : record->get_fields()) {
+      field->Visit(this);
+    }
+  }
+  void VisitString(const VDP::String *str) { printf("got string\n"); }
+  void VisitAnyFloat(const std::string &name, double value,
+                     const VDP::Part *) override {
+    printf("Got float\n");
+  }
+  void VisitAnyInt(const std::string &name, int64_t value,
+                   const VDP::Part *) override {
+    printf("Got int\n");
+  }
+  void VisitAnyUint(const std::string &name, uint64_t value,
+                    const VDP::Part *) override {
+    printf("Got uint\n");
+  }
+};
 
 extern "C" void app_main(void) {
 
@@ -49,6 +77,15 @@ extern "C" void app_main(void) {
   if (server_handle == NULL) {
     ESP_LOGE(TAG, "Failed to initialize log endpoint");
   }
+
+  reg.install_broadcast_callback(
+      [](const VDP::Channel &chan) { printf("got channel\n"); });
+
+  reg.install_data_callback([](const VDP::Channel &chan) {
+    JSONVisitor visitor;
+    chan.data->Visit(&visitor);
+    printf("got data\n");
+  });
 
   ESP_LOGI(TAG, "Finished Initialization.");
   setup_finished = true;
