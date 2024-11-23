@@ -1,6 +1,6 @@
 #include "vdb/crc32.hpp"
 
-#define FLASH_READ_DWORD(x) (*(uint32_t *)(x))
+#define FLASH_READ_DWORD(x) (*(const uint32_t *)(x))
 
 static constexpr uint32_t crc32_table[] = {
     0x00000000, 0x1db71064, 0x3b6e20c8, 0x26d930ac, 0x76dc4190, 0x6b6b51f4,

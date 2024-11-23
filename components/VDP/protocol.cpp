@@ -201,15 +201,8 @@ std::pair<ChannelID, PartPtr> decode_broadcast(const Packet &packet) {
   PacketReader reader(packet);
   // header byte, had to be read to know were a braodcast
   (void)reader.get_byte();
-  VDPTracef("SETUP decoding broadcast of size: %d", (int)packet.size());
-  VDPTracef("Memory: %d", (int)heap_caps_check_integrity_all(true));
-
   const ChannelID id = reader.get_number<ChannelID>();
-  VDPTracef("ID decoded of broadcast of size: %d", (int)packet.size());
-  VDPTracef("Memory: %d", (int)heap_caps_check_integrity_all(true));
-
   const PartPtr schema = make_decoder(reader);
-  VDPTracef("SCHEMA decoded of broadcast of size: %d", (int)packet.size());
   return {id, schema};
 }
 Part::Part(std::string name) : name(std::move(name)) {}

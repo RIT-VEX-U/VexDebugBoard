@@ -1,6 +1,4 @@
 #pragma once
-#include "esp_heap_caps.h"
-
 #include "vdb/crc32.hpp"
 #include <array>
 #include <cstdio>

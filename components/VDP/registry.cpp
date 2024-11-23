@@ -37,6 +37,8 @@ static VDP::PacketValidity validate_packet(const VDP::Packet &packet) {
       (uint32_t(packet[size - 3]) << 8) | uint32_t(packet[size - 4]);
 
   if (checksum != written_checksum) {
+    VDPWarnf("Checksums do not match: expected: %08lx, got: %08lx", checksum,
+             written_checksum);
     return VDP::PacketValidity::BadChecksum;
   }
   return VDP::PacketValidity::Ok;
@@ -77,10 +79,8 @@ void Registry::take_packet(const Packet &pac) {
     if (header.type == VDP::PacketType::Broadcast) {
       VDPTracef("%s: PacketType Broadcast", identifier());
       auto decoded = VDP::decode_broadcast(pac);
-      VDPTracef("%s: decoded", identifier());
 
       VDP::Channel chan{decoded.second, decoded.first};
-      VDPTracef("%s: made chan", identifier());
 
       if (remote_channels.size() < chan.id) {
         VDPWarnf("%s: Out of order broadcast. dropping", identifier());
@@ -154,7 +154,6 @@ bool Registry::negotiate() {
         VDB::delay_ms(5);
       }
       if (chan.acked == true) {
-
         VDPTracef("%s: Acked channel %d after %d ms on attempt %d",
                   identifier(), chan.id, (int)(VDB::time_ms() - time),
                   (int)j + 1);
@@ -163,7 +162,9 @@ bool Registry::negotiate() {
         VDPWarnf("%s: ack for chan id:%02x expired after %d msec", identifier(),
                  chan.id, (int)ack_ms);
         failed_acks++;
-        acked_all = false;
+        if (j == broadcast_tries_per - 1) {
+          acked_all = false;
+        }
       }
     }
   }
