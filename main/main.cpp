@@ -21,16 +21,8 @@ bool setup_finished = false;
 #define BRAIN_UART_RXD 7
 #define BRAIN_UART_RTS 10
 
-// CTS is not used in RS485 Half - Duplex Mode
-// #define ECHO_TEST_CTS (UART_PIN_NO_CHANGE)
-
-#define BRAIN_BAUD_RATE 921600
+#define BRAIN_BAUD_RATE (115200 * 4)
 #define BRAIN_UART UART_NUM_1
-
-// Read packet timeout
-#define PACKET_READ_TICS (100 / portTICK_PERIOD_MS)
-#define ECHO_TASK_STACK_SIZE (2048)
-#define ECHO_TASK_PRIO (10)
 
 extern "C" void app_main(void) {
 

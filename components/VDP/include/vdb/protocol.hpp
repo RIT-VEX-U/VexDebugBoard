@@ -1,5 +1,7 @@
 #pragma once
+#include "esp_heap_caps.h"
 
+#include "vdb/crc32.hpp"
 #include <array>
 #include <cstdio>
 #include <cstring>
@@ -14,7 +16,7 @@ uint32_t time_ms();
 void delay_ms(uint32_t ms);
 } // namespace VDB
 
-#define VDPTRACE
+// #define VDPTRACE
 #define VDPDEBUG
 #define VDPWARN
 
@@ -38,10 +40,6 @@ void delay_ms(uint32_t ms);
 
 namespace VDP {
 constexpr size_t MAX_CHANNELS = 256;
-
-// THESE NEED TO BE IMPLEMENTEED SOMEWHERE
-uint32_t crc32_one(uint32_t accum, uint8_t b);
-uint32_t crc32_buf(uint32_t accum, const uint8_t *b, uint32_t length);
 
 class Part;
 using PartPtr = std::shared_ptr<Part>;
@@ -151,7 +149,6 @@ public:
   uint8_t get_byte();
   Type get_type();
   std::string get_string();
-  uint32_t calc_crc32();
 
   template <typename Number> Number get_number() {
     static_assert(std::is_floating_point<Number>::value ||
@@ -206,6 +203,9 @@ private:
 
 class AbstractDevice {
 public:
+  // Send a packet over some transmission medium
+  // It is not specified how the packet reaches the partner
+  // The transmission medium and wire format are left to the user
   virtual bool send_packet(const VDP::Packet &packet) = 0;
 
   // @param callback a function that will be called when a new packet is

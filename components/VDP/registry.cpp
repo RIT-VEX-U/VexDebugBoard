@@ -21,10 +21,6 @@ void Registry::install_data_callback(CallbackFn on_dataf) {
 
 static VDP::PacketValidity validate_packet(const VDP::Packet &packet) {
   VDPTracef("Validating packet of size %d", (int)packet.size());
-  for (uint8_t b : packet) {
-    printf("0x%02x,", b);
-  }
-  printf("\n");
 
   // packet header byte + channel byte + checksum = 6 bytes
   static constexpr size_t min_packet_size = 6;
@@ -32,15 +28,13 @@ static VDP::PacketValidity validate_packet(const VDP::Packet &packet) {
   if (packet.size() < min_packet_size) {
     return VDP::PacketValidity::TooSmall;
   }
-  auto checksum = crc32_buf(0xFFFFFFFF, packet.data(), packet.size() - 4);
-  printf("CHECKSUM: %08lx\n", checksum);
+
+  uint32_t checksum = CRC32::calculate(packet.data(), packet.size() - 4);
 
   auto size = packet.size();
   const uint32_t written_checksum =
       (uint32_t(packet[size - 1]) << 24) | (uint32_t(packet[size - 2]) << 16) |
       (uint32_t(packet[size - 3]) << 8) | uint32_t(packet[size - 4]);
-
-  printf("WRITTEN CHECKSUM: %08lx\n", checksum);
 
   if (checksum != written_checksum) {
     return VDP::PacketValidity::BadChecksum;
@@ -66,7 +60,9 @@ void Registry::take_packet(const Packet &pac) {
     return;
   } else if (status == VDP::PacketValidity::TooSmall) {
     num_small++;
-    VDPWarnf("%s: Packet too small to be valid. Skipping", identifier());
+    VDPWarnf("%s: Packet too small to be valid (%d bytes). Skipping",
+             identifier(), (int)pac.size());
+    dump_packet(pac);
     return;
   } else if (status != VDP::PacketValidity::Ok) {
     VDPWarnf("%s: Unknown validity of packet (BAD). Skipping", identifier());
@@ -76,10 +72,15 @@ void Registry::take_packet(const Packet &pac) {
   const VDP::PacketHeader header = VDP::decode_header_byte(pac[0]);
 
   if (header.func == VDP::PacketFunction::Send) {
+    VDPTracef("%s: PacketFunction Send", identifier());
+
     if (header.type == VDP::PacketType::Broadcast) {
+      VDPTracef("%s: PacketType Broadcast", identifier());
       auto decoded = VDP::decode_broadcast(pac);
+      VDPTracef("%s: decoded", identifier());
 
       VDP::Channel chan{decoded.second, decoded.first};
+      VDPTracef("%s: made chan", identifier());
 
       if (remote_channels.size() < chan.id) {
         VDPWarnf("%s: Out of order broadcast. dropping", identifier());
@@ -95,6 +96,7 @@ void Registry::take_packet(const Packet &pac) {
       device->send_packet(writer.get_packet());
 
     } else if (header.type == VDP::PacketType::Data) {
+      VDPTracef("%s: PacketType Data", identifier());
       const ChannelID id = pac[1];
       const PartPtr part = get_remote_schema(id);
       if (part == nullptr) {

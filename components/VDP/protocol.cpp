@@ -87,7 +87,7 @@ void PacketWriter::write_channel_acknowledge(const Channel &chan) {
   write_number<ChannelID>(chan.getID());
 
   // Checksum
-  auto crc = VDP::crc32_buf(0xFFFFFFFF, sofar.data(), sofar.size());
+  uint32_t crc = CRC32::calculate(sofar.data(), sofar.size());
   write_number<uint32_t>(crc);
 }
 void PacketWriter::write_channel_broadcast(const Channel &chan) {
@@ -102,7 +102,7 @@ void PacketWriter::write_channel_broadcast(const Channel &chan) {
   chan.data->write_schema(*this);
 
   // Checksum
-  auto crc = VDP::crc32_buf(0xFFFFFFFF, sofar.data(), sofar.size());
+  uint32_t crc = CRC32::calculate(sofar.data(), sofar.size());
 
   write_number<uint32_t>(crc);
 }
@@ -118,7 +118,7 @@ void PacketWriter::write_data_message(const Channel &chan) {
   // Data
   chan.data->write_message(*this);
   // Checksum
-  auto crc = VDP::crc32_buf(0xFFFFFFFF, sofar.data(), sofar.size());
+  uint32_t crc = CRC32::calculate(sofar.data(), sofar.size());
   write_number<uint32_t>(crc);
 }
 
@@ -197,12 +197,19 @@ PartPtr make_decoder(PacketReader &pac) {
   return nullptr;
 }
 std::pair<ChannelID, PartPtr> decode_broadcast(const Packet &packet) {
-
+  VDPTracef("Decoding broadcast of size: %d", (int)packet.size());
   PacketReader reader(packet);
   // header byte, had to be read to know were a braodcast
   (void)reader.get_byte();
+  VDPTracef("SETUP decoding broadcast of size: %d", (int)packet.size());
+  VDPTracef("Memory: %d", (int)heap_caps_check_integrity_all(true));
+
   const ChannelID id = reader.get_number<ChannelID>();
+  VDPTracef("ID decoded of broadcast of size: %d", (int)packet.size());
+  VDPTracef("Memory: %d", (int)heap_caps_check_integrity_all(true));
+
   const PartPtr schema = make_decoder(reader);
+  VDPTracef("SCHEMA decoded of broadcast of size: %d", (int)packet.size());
   return {id, schema};
 }
 Part::Part(std::string name) : name(std::move(name)) {}

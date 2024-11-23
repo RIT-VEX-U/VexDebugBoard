@@ -122,30 +122,31 @@ esp_err_t VDBDevice::init_serial(VDBDevice *self, uart_port_t uart_num,
       .source_clk = UART_SCLK_DEFAULT,
 
   };
-  ESP_LOGI(TAG, "Start RS485 application test and configure UART.");
+  ESP_LOGI(TAG, "Start RS485 configure UART.");
 
   // Install UART driver, and get the queue.
-  uart_driver_install(uart_num, BUF_SIZE * 2, BUF_SIZE * 2, 20,
-                      &self->uart0_queue, 0);
-  uart_param_config(uart_num, &uart_config);
+  ESP_RETURN_ON_ERROR(uart_param_config(uart_num, &uart_config), TAG,
+                      "failed to param_config");
 
-  // Set UART pins as per KConfig settings
   ESP_RETURN_ON_ERROR(
       uart_set_pin(uart_num, tx_num, rx_num, rts_num, UART_PIN_NO_CHANGE), TAG,
       "Failed to set UART Pins");
+
+  ESP_RETURN_ON_ERROR(uart_driver_install(uart_num, BUF_SIZE * 2, BUF_SIZE * 2,
+                                          20, &self->uart0_queue, 0),
+                      TAG, "Failed to install driver");
 
   // Set RS485 half duplex mode
   ESP_RETURN_ON_ERROR(uart_set_mode(uart_num, UART_MODE_RS485_HALF_DUPLEX), TAG,
                       "Failed to set UART mode");
 
-  ESP_RETURN_ON_ERROR(uart_param_config(uart_num, &uart_config), TAG,
-                      "failed to get ");
-
   xTaskCreate(VDBDevice::uart_event_task, "uart_handler_task", 2048, self, 12,
               NULL);
 
-  xTaskCreate(VDBDevice::packet_handler_thread, "packet_handler_thread", 2048,
+  xTaskCreate(VDBDevice::packet_handler_thread, "packet_handler_thread", 4096,
               self, 12, NULL);
+
+  ESP_LOGI(TAG, "Finish RS485 configure UART.");
 
   return ESP_OK;
 }
@@ -158,8 +159,8 @@ void VDBDevice::packet_handler_thread(void *pvParameters) {
     // Waiting for UART event.
     if (xQueueReceive(self->packet_queue, (void *)&wire_packet,
                       (TickType_t)portMAX_DELAY)) {
-      ESP_LOGI(TAG, "Got Packet of size: %d: %p", (int)wire_packet->size(),
-               (void *)wire_packet);
+
+      VDPTracef("Recieved wire packet of size %d", (int)wire_packet->size());
 
       VDP::Packet packet;
       VDB::CobsDecode(*wire_packet, packet);
@@ -183,31 +184,23 @@ VDBDevice::VDBDevice(uart_port_t uart_num, int tx_num, int rx_num, int rts_num,
 
 void VDBDevice::register_receive_callback(
     std::function<void(const VDP::Packet &packet)> new_callback) {
-  ESP_LOGI(TAG, "Got callback");
   callback = new_callback;
 }
 bool VDBDevice::send_packet(const VDP::Packet &pac) {
   VDB::WirePacket out;
   VDB::CobsEncode(pac, out);
 
-  esp_err_t e =
-      uart_write_bytes(uart_num, (const char *)out.data(), out.size());
-  if (e != ESP_OK) {
-    ESP_LOGW(TAG, "Failed to write bytes: %d", (int)e);
+  int res = uart_write_bytes(uart_num, (const char *)out.data(), out.size());
+  if (res < 0) {
+    ESP_LOGW(TAG, "Failed to write bytes: error code %d", (int)res);
+  } else if (res != out.size()) {
+    ESP_LOGW(TAG, "Didn't write all bytes. Wanted %d got %d", (int)out.size(),
+             res);
   }
 
-  return e == ESP_OK;
+  return res == ESP_OK;
 }
 
-namespace VDP {
-uint32_t crc32_one(uint32_t accum, uint8_t b) {
-
-  return crc32_buf(accum, &b, 1);
-}
-uint32_t crc32_buf(uint32_t accum, const uint8_t *b, uint32_t length) {
-  return esp_crc32_le(accum, b, length);
-}
-} // namespace VDP
 namespace VDB {
 uint32_t time_ms() { return esp_timer_get_time() / 1000; }
 void delay_ms(uint32_t ms) { vTaskDelay(ms / portTICK_PERIOD_MS); }
