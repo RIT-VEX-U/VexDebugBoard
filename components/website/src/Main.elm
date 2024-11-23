@@ -119,7 +119,8 @@ update msg model =
         ConfigReceived res ->
             case res of
                 Err e ->
-                    Debug.todo "bad config response"
+                    -- Debug.todo "bad config response"
+                    ( model, Cmd.none )
 
                 Ok cfg ->
                     ( { model | configs = Just { initial = cfg, current = cfg } }, Cmd.none )
@@ -272,7 +273,7 @@ mupdate rinfo mmodel =
         AppMsg msg ->
             case mmodel of
                 NotConnected log ->
-                    ( NotConnected (List.append log [ Debug.toString msg ]), Api.sysInfoRequest default_host SysinfoReceived )
+                    ( NotConnected (List.append log [ "Debug.toString msg" ]), Api.sysInfoRequest default_host SysinfoReceived )
 
                 Connected model ->
                     update msg model

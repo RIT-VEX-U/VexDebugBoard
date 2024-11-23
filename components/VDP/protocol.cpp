@@ -103,6 +103,7 @@ void PacketWriter::write_channel_broadcast(const Channel &chan) {
 
   // Checksum
   auto crc = VDP::crc32_buf(0xFFFFFFFF, sofar.data(), sofar.size());
+
   write_number<uint32_t>(crc);
 }
 void PacketWriter::write_data_message(const Channel &chan) {

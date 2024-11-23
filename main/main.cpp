@@ -24,25 +24,13 @@ bool setup_finished = false;
 // CTS is not used in RS485 Half - Duplex Mode
 // #define ECHO_TEST_CTS (UART_PIN_NO_CHANGE)
 
-#define BRAIN_BAUD_RATE 115200
+#define BRAIN_BAUD_RATE 921600
 #define BRAIN_UART UART_NUM_1
 
 // Read packet timeout
 #define PACKET_READ_TICS (100 / portTICK_PERIOD_MS)
 #define ECHO_TASK_STACK_SIZE (2048)
 #define ECHO_TASK_PRIO (10)
-
-class Device : public VDP::AbstractDevice {
-  bool send_packet(const VDP::Packet &packet) override { return false; };
-
-  // @param callback a function that will be called when a new packet is
-  // available
-  void register_receive_callback(
-      std::function<void(const VDP::Packet &packet)> callback) override {};
-};
-
-Device dev{};
-VDP::Registry reg{&dev, VDP::Registry::Listener};
 
 extern "C" void app_main(void) {
 
@@ -61,9 +49,9 @@ extern "C" void app_main(void) {
   init_mdns();
 
   ESP_LOGI(TAG, "Initializing Serial Connection...");
-  esp_err_t e = init_serial(BRAIN_UART, BRAIN_UART_TXD, BRAIN_UART_RXD,
-                            BRAIN_UART_RTS, BRAIN_BAUD_RATE, reg);
-  ESP_ERROR_CHECK(e);
+  VDBDevice dev{BRAIN_UART, BRAIN_UART_TXD, BRAIN_UART_RXD, BRAIN_UART_RTS,
+                BRAIN_BAUD_RATE};
+  VDP::Registry reg{&dev, VDP::Registry::Listener};
 
   httpd_handle_t server_handle = webserver_start(80);
   if (server_handle == NULL) {

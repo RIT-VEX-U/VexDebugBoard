@@ -16,41 +16,102 @@
 
 static constexpr const char *TAG = "VDB";
 
-TaskHandle_t reader_handle = NULL;
-TaskHandle_t writer_handle = NULL;
-
 struct HardwareThreadData {
   VDP::Registry &reg;
   uart_port_t uart;
 };
 
-extern "C" void reader_thread(void *ptr) {
-  HardwareThreadData data = *(HardwareThreadData *)ptr;
-  ESP_LOGI(TAG, "Reader thread began with uart %d", data.uart);
-  // static constexpr TickType_t almost_forever = 0xFF; // ~49 days
+void VDBDevice::uart_event_task(void *pvParameters) {
+  VDBDevice *self = (VDBDevice *)pvParameters;
+  uart_port_t uart_num = self->uart_num;
 
-  constexpr size_t mike_buflen = 512;
-  uint8_t buf[mike_buflen] = {0};
+  uart_event_t event;
 
-  while (true) {
-    int read = uart_read_bytes(data.uart, buf, mike_buflen, 100);
-    if (read < 0) {
-      ESP_LOGW(TAG, "Failure reading uart");
-      continue;
-    } else if (read == 0) {
-      // Read nothing
-      ESP_LOGI(TAG, "Uart Read timed out");
-      continue;
+#define BUF_SIZE (1024)
+#define RD_BUF_SIZE (BUF_SIZE)
+  uint8_t *dtmp = (uint8_t *)malloc(RD_BUF_SIZE);
+  int ret;
+
+  for (;;) {
+    // Waiting for UART event.
+    if (xQueueReceive(self->uart0_queue, (void *)&event,
+                      (TickType_t)portMAX_DELAY)) {
+      bzero(dtmp, RD_BUF_SIZE);
+      switch (event.type) {
+      // Event of UART receving data
+      /*We'd better handler data event fast, there would be much more data
+      events than other types of events. If we take too much time on data event,
+      the queue might be full.*/
+      case UART_DATA:
+        ret = uart_read_bytes(uart_num, dtmp, event.size, portMAX_DELAY);
+        if (ret < 0) {
+          ESP_LOGE(TAG, "Error reading bytes from uart: %d\n", ret);
+        } else {
+          self->handle_uart_bytes(dtmp, ret);
+        }
+        break;
+      // Event of HW FIFO overflow detected
+      case UART_FIFO_OVF:
+        ESP_LOGI(TAG, "hw fifo overflow");
+        // If fifo overflow happened, you should consider adding flow control
+        // for your application. The ISR has already reset the rx FIFO, As an
+        // example, we directly flush the rx buffer here in order to read more
+        // data.
+        uart_flush_input(uart_num);
+        xQueueReset(self->uart0_queue);
+        break;
+      // Event of UART ring buffer full
+      case UART_BUFFER_FULL:
+        ESP_LOGI(TAG, "ring buffer full");
+        // If buffer full happened, you should consider increasing your buffer
+        // size As an example, we directly flush the rx buffer here in order to
+        // read more data.
+        uart_flush_input(uart_num);
+        xQueueReset(self->uart0_queue);
+        break;
+      // Event of UART RX break detected
+      case UART_BREAK:
+        ESP_LOGI(TAG, "uart rx break");
+        break;
+      // Event of UART parity check error
+      case UART_PARITY_ERR:
+        ESP_LOGI(TAG, "uart parity error");
+        break;
+      // Event of UART frame error
+      case UART_FRAME_ERR:
+        ESP_LOGI(TAG, "uart frame error");
+        break;
+      // Others
+      default:
+        ESP_LOGI(TAG, "uart event type: %d", event.type);
+        break;
+      }
     }
-    ESP_LOGI(TAG, "Read %d bytes\n", read);
-    // sleep(1);
+  }
+  free(dtmp);
+  dtmp = NULL;
+  vTaskDelete(NULL);
+}
+
+void VDBDevice::handle_uart_bytes(const uint8_t *buf, int size) {
+  for (int i = 0; i < size; i++) {
+    uint8_t b = buf[i];
+    if (b == 0x00 && inbound_buffer.size() > 0) {
+      VDB::WirePacket *copy_buf = new VDB::WirePacket(inbound_buffer);
+
+      xQueueSend(packet_queue, (void *)&copy_buf, 4);
+
+      // Starting a new packet now
+      inbound_buffer.clear();
+    } else if (b != 0x00) {
+      inbound_buffer.push_back(b);
+    }
   }
 }
 
-esp_err_t init_serial(uart_port_t uart_num, int tx_num, int rx_num, int rts_num,
-                      int baud, VDP::Registry &reg) {
-  constexpr int read_timeout = 3;
-
+esp_err_t VDBDevice::init_serial(VDBDevice *self, uart_port_t uart_num,
+                                 int tx_num, int rx_num, int rts_num,
+                                 int baud) {
   uart_config_t uart_config = {
       .baud_rate = baud,
       .data_bits = UART_DATA_8_BITS,
@@ -59,17 +120,14 @@ esp_err_t init_serial(uart_port_t uart_num, int tx_num, int rx_num, int rts_num,
       .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
       .rx_flow_ctrl_thresh = 122,
       .source_clk = UART_SCLK_DEFAULT,
+
   };
   ESP_LOGI(TAG, "Start RS485 application test and configure UART.");
 
-  // Install UART driver (we don't need an event queue here)
-  // In this example we don't even use a buffer for sending data.
-  ESP_RETURN_ON_ERROR(uart_driver_install(uart_num, 1024, 0, 0, NULL, 0), TAG,
-                      "Failed to install UART Driver");
-
-  // Configure UART parameters
-  ESP_RETURN_ON_ERROR(uart_param_config(uart_num, &uart_config), TAG,
-                      "Failed to set UART config");
+  // Install UART driver, and get the queue.
+  uart_driver_install(uart_num, BUF_SIZE * 2, BUF_SIZE * 2, 20,
+                      &self->uart0_queue, 0);
+  uart_param_config(uart_num, &uart_config);
 
   // Set UART pins as per KConfig settings
   ESP_RETURN_ON_ERROR(
@@ -80,26 +138,73 @@ esp_err_t init_serial(uart_port_t uart_num, int tx_num, int rx_num, int rts_num,
   ESP_RETURN_ON_ERROR(uart_set_mode(uart_num, UART_MODE_RS485_HALF_DUPLEX), TAG,
                       "Failed to set UART mode");
 
-  // Set read timeout of UART TOUT feature
-  ESP_RETURN_ON_ERROR(uart_set_rx_timeout(uart_num, read_timeout), TAG,
-                      "Failed to set UART Timeout");
+  ESP_RETURN_ON_ERROR(uart_param_config(uart_num, &uart_config), TAG,
+                      "failed to get ");
 
-  HardwareThreadData *dat = new HardwareThreadData(reg, uart_num);
+  xTaskCreate(VDBDevice::uart_event_task, "uart_handler_task", 2048, self, 12,
+              NULL);
 
-  xTaskCreate((TaskFunction_t)reader_thread, "reader thread", 4098, dat,
-              tskIDLE_PRIORITY, &reader_handle);
+  xTaskCreate(VDBDevice::packet_handler_thread, "packet_handler_thread", 2048,
+              self, 12, NULL);
 
   return ESP_OK;
+}
+
+void VDBDevice::packet_handler_thread(void *pvParameters) {
+  VDBDevice *self = (VDBDevice *)pvParameters;
+
+  for (;;) {
+    VDB::WirePacket *wire_packet;
+    // Waiting for UART event.
+    if (xQueueReceive(self->packet_queue, (void *)&wire_packet,
+                      (TickType_t)portMAX_DELAY)) {
+      ESP_LOGI(TAG, "Got Packet of size: %d: %p", (int)wire_packet->size(),
+               (void *)wire_packet);
+
+      VDP::Packet packet;
+      VDB::CobsDecode(*wire_packet, packet);
+      delete wire_packet;
+      self->callback(packet);
+    }
+  }
+}
+
+VDBDevice::VDBDevice(uart_port_t uart_num, int tx_num, int rx_num, int rts_num,
+                     int baud)
+    : uart_num(uart_num),
+      packet_queue(
+          xQueueCreate(NUM_INCOMING_PACKETS, sizeof(VDB::WirePacket *))) {
+  esp_err_t res = init_serial(this, uart_num, tx_num, rx_num, rts_num, baud);
+
+  if (res != ESP_OK) {
+    ESP_LOGE(TAG, "Error initializing VDB Device: %d", res);
+  }
+}
+
+void VDBDevice::register_receive_callback(
+    std::function<void(const VDP::Packet &packet)> new_callback) {
+  ESP_LOGI(TAG, "Got callback");
+  callback = new_callback;
+}
+bool VDBDevice::send_packet(const VDP::Packet &pac) {
+  VDB::WirePacket out;
+  VDB::CobsEncode(pac, out);
+
+  esp_err_t e =
+      uart_write_bytes(uart_num, (const char *)out.data(), out.size());
+  if (e != ESP_OK) {
+    ESP_LOGW(TAG, "Failed to write bytes: %d", (int)e);
+  }
+
+  return e == ESP_OK;
 }
 
 namespace VDP {
 uint32_t crc32_one(uint32_t accum, uint8_t b) {
 
   return crc32_buf(accum, &b, 1);
-  // return VDB::dummy_vexlink::crc32_one(accum, b);
 }
 uint32_t crc32_buf(uint32_t accum, const uint8_t *b, uint32_t length) {
-  // return VDB::dummy_vexlink::crc32_buf(accum, b, length);
   return esp_crc32_le(accum, b, length);
 }
 } // namespace VDP
@@ -125,7 +230,7 @@ void CobsEncode(const VDP::Packet &in, WirePacket &out) {
   size_t length = 0;
   while (input_head < in.size()) {
     if (in[input_head] == 0 || length == 255) {
-      out[output_code_head] = code_value;
+      out[output_code_head] = (uint8_t)code_value;
       code_value = 1;
       output_code_head = output_head;
       length = 0;
@@ -179,8 +284,6 @@ void CobsDecode(const WirePacket &in, VDP::Packet &out) {
     left_in_block--;
   }
   out.resize(write_head);
-
-  return;
 }
 
 } // namespace VDB

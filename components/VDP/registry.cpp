@@ -21,6 +21,10 @@ void Registry::install_data_callback(CallbackFn on_dataf) {
 
 static VDP::PacketValidity validate_packet(const VDP::Packet &packet) {
   VDPTracef("Validating packet of size %d", (int)packet.size());
+  for (uint8_t b : packet) {
+    printf("0x%02x,", b);
+  }
+  printf("\n");
 
   // packet header byte + channel byte + checksum = 6 bytes
   static constexpr size_t min_packet_size = 6;
@@ -29,10 +33,15 @@ static VDP::PacketValidity validate_packet(const VDP::Packet &packet) {
     return VDP::PacketValidity::TooSmall;
   }
   auto checksum = crc32_buf(0xFFFFFFFF, packet.data(), packet.size() - 4);
+  printf("CHECKSUM: %08lx\n", checksum);
+
   auto size = packet.size();
   const uint32_t written_checksum =
       (uint32_t(packet[size - 1]) << 24) | (uint32_t(packet[size - 2]) << 16) |
       (uint32_t(packet[size - 3]) << 8) | uint32_t(packet[size - 4]);
+
+  printf("WRITTEN CHECKSUM: %08lx\n", checksum);
+
   if (checksum != written_checksum) {
     return VDP::PacketValidity::BadChecksum;
   }
@@ -143,9 +152,10 @@ bool Registry::negotiate() {
         VDB::delay_ms(5);
       }
       if (chan.acked == true) {
+
         VDPTracef("%s: Acked channel %d after %d ms on attempt %d",
-                  identifier(), chan.id,
-                  (int)waiting_on_ack_timer.time(vex::msec), (int)j + 1);
+                  identifier(), chan.id, (int)(VDB::time_ms() - time),
+                  (int)j + 1);
         break;
       } else {
         VDPWarnf("%s: ack for chan id:%02x expired after %d msec", identifier(),

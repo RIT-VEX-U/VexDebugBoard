@@ -14,8 +14,8 @@ uint32_t time_ms();
 void delay_ms(uint32_t ms);
 } // namespace VDB
 
-// #define VDPTRACE
-// #define VDPDEBUG
+#define VDPTRACE
+#define VDPDEBUG
 #define VDPWARN
 
 #ifdef VDPWARN

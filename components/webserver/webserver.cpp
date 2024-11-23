@@ -98,7 +98,7 @@ httpd_handle_t webserver_start(uint16_t port) {
   favicon_ico.buf = get_favicon();
   favicon_ico.size = get_favicon_size();
   favicon_ico.type = "image/png";
-  favicon_ico.gzipped = false;
+  favicon_ico.gzipped = true;
   ESP_LOGI(TAG, "Initialized %s of size %d to %p", favicon_ico.name,
            favicon_ico.size, favicon_ico.buf);
 
