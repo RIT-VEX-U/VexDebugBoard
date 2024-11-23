@@ -4,8 +4,9 @@
 
 #include "esp_check.h"
 #include "esp_crc.h"
-
+#include "esp_err.h"
 #include "esp_log.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -117,8 +118,8 @@ esp_err_t VDBDevice::init_serial(VDBDevice *self, uart_port_t uart_num,
       .data_bits = UART_DATA_8_BITS,
       .parity = UART_PARITY_DISABLE,
       .stop_bits = UART_STOP_BITS_1,
-      .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
-      .rx_flow_ctrl_thresh = 122,
+      .flow_ctrl = UART_HW_FLOWCTRL_DISABLE, // UART_HW_FLOWCTRL_RTS
+      .rx_flow_ctrl_thresh = 48,
       .source_clk = UART_SCLK_DEFAULT,
 
   };
@@ -147,6 +148,7 @@ esp_err_t VDBDevice::init_serial(VDBDevice *self, uart_port_t uart_num,
               self, 12, NULL);
 
   ESP_LOGI(TAG, "Finish RS485 configure UART.");
+  ESP_RETURN_ON_ERROR(uart_set_rts(uart_num, 1), TAG, "failed to set rts");
 
   return ESP_OK;
 }
@@ -190,6 +192,9 @@ bool VDBDevice::send_packet(const VDP::Packet &pac) {
   VDB::WirePacket out;
   VDB::CobsEncode(pac, out);
 
+  // ESP_ERROR_CHECK_WITHOUT_ABORT(uart_set_rts(uart_num, 0), TAG,
+  // "failed to set rts");
+
   int res = uart_write_bytes(uart_num, (const char *)out.data(), out.size());
   if (res < 0) {
     ESP_LOGW(TAG, "Failed to write bytes: error code %d", (int)res);
@@ -197,6 +202,8 @@ bool VDBDevice::send_packet(const VDP::Packet &pac) {
     ESP_LOGW(TAG, "Didn't write all bytes. Wanted %d got %d", (int)out.size(),
              res);
   }
+  // ESP_ERROR_CHECK_WITHOUT_ABORT(uart_set_rts(uart_num, 1), TAG,
+  // "failed to set rts");
 
   return res == ESP_OK;
 }

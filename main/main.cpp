@@ -21,7 +21,7 @@ bool setup_finished = false;
 #define BRAIN_UART_RXD 7
 #define BRAIN_UART_RTS 10
 
-#define BRAIN_BAUD_RATE (115200 * 4)
+#define BRAIN_BAUD_RATE (115200 * 2)
 #define BRAIN_UART UART_NUM_1
 
 extern "C" void app_main(void) {
