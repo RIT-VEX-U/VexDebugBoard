@@ -208,6 +208,8 @@ public:
 
 class Visitor {
 public:
+  virtual ~Visitor() {}
+
   virtual void VisitRecord(const Record *) = 0;
 
   virtual void VisitString(const String *) = 0;

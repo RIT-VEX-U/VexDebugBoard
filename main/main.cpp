@@ -19,37 +19,54 @@ static const char *TAG = "main";
 
 bool setup_finished = false;
 
-// Note: Some pins on target chip cannot be assigned for UART communication.
-// Please refer to documentation for selected board and target to configure pins
-// using Kconfig.
-#define BRAIN_UART_TXD 6
-#define BRAIN_UART_RXD 7
-#define BRAIN_UART_RTS 10
-
-#define BRAIN_BAUD_RATE (115200 * 2)
-#define BRAIN_UART UART_NUM_1
+#include "cJSON.h"
 
 class JSONVisitor : public VDP::UpcastNumbersVisitor {
 public:
+  JSONVisitor() {
+    root = cJSON_CreateObject();
+    node_stack.push_back(root);
+  }
+  ~JSONVisitor() { cJSON_Delete(root); }
+
   void VisitRecord(const VDP::Record *record) {
-    printf("got record\n");
+    cJSON *oldroot = current_node();
+    cJSON *newroot = cJSON_CreateObject();
+    node_stack.push_back(newroot);
+
     for (const VDP::PartPtr &field : record->get_fields()) {
       field->Visit(this);
     }
+    node_stack.pop_back();
+
+    std::string name = record->get_name();
+    cJSON_AddItemToObject(oldroot, name.c_str(), newroot);
   }
-  void VisitString(const VDP::String *str) { printf("got string\n"); }
+  void VisitString(const VDP::String *str) {
+    std::string name = str->get_name();
+    std::string value = str->get_value();
+
+    cJSON *oldroot = current_node();
+    cJSON_AddStringToObject(oldroot, name.c_str(), value.c_str());
+  }
   void VisitAnyFloat(const std::string &name, double value,
                      const VDP::Part *) override {
-    printf("Got float\n");
+    cJSON_AddNumberToObject(current_node(), name.c_str(), value);
   }
   void VisitAnyInt(const std::string &name, int64_t value,
                    const VDP::Part *) override {
-    printf("Got int\n");
+    cJSON_AddNumberToObject(current_node(), name.c_str(), (double)value);
   }
   void VisitAnyUint(const std::string &name, uint64_t value,
                     const VDP::Part *) override {
-    printf("Got uint\n");
+    cJSON_AddNumberToObject(current_node(), name.c_str(), (double)value);
   }
+
+  cJSON *current_node() { return node_stack[node_stack.size() - 1]; }
+
+private:
+  cJSON *root;
+  std::vector<cJSON *> node_stack;
 };
 
 extern "C" void app_main(void) {
@@ -69,6 +86,13 @@ extern "C" void app_main(void) {
   init_mdns();
 
   ESP_LOGI(TAG, "Initializing Serial Connection...");
+  constexpr int BRAIN_UART_TXD = 6;
+  constexpr int BRAIN_UART_RXD = 7;
+  constexpr int BRAIN_UART_RTS = 10;
+
+  constexpr int BRAIN_BAUD_RATE = (115200 * 2);
+  constexpr uart_port_t BRAIN_UART = UART_NUM_1;
+
   VDBDevice dev{BRAIN_UART, BRAIN_UART_TXD, BRAIN_UART_RXD, BRAIN_UART_RTS,
                 BRAIN_BAUD_RATE};
   VDP::Registry reg{&dev, VDP::Registry::Listener};
@@ -84,7 +108,9 @@ extern "C" void app_main(void) {
   reg.install_data_callback([](const VDP::Channel &chan) {
     JSONVisitor visitor;
     chan.data->Visit(&visitor);
-    printf("got data\n");
+    const char *json_str = cJSON_Print(visitor.current_node());
+    printf("got data\n%s\n", json_str);
+    cJSON_free((void *)json_str);
   });
 
   ESP_LOGI(TAG, "Finished Initialization.");
