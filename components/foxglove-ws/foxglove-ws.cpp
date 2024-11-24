@@ -1,4 +1,4 @@
-#include "foxglove-ws.h"
+#include "foxglove-ws.hpp"
 #include <stdio.h>
 
 static const char *TAG = "foxglove_ws";
@@ -10,7 +10,7 @@ static const httpd_uri_t ws = {
     .method = HTTP_GET,
     .handler = foxglove_ws_handler,
     .user_ctx = NULL,
-    // .is_websocket = true
+    .is_websocket = true,
 };
 
 void foxglove_init_ws(void *arg_server) {

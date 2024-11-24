@@ -1,10 +1,12 @@
 #include "rest.hpp"
 #include "cJSON.h"
-#include "common.hpp"
 #include <esp_check.h>
 #include <esp_chip_info.h>
 #include <esp_log.h>
 #include <esp_timer.h>
+
+#include "common.hpp"
+#include "website.h"
 
 static const char *TAG = "api";
 
@@ -129,5 +131,87 @@ esp_err_t init_rest_server(httpd_handle_t server) {
                       "Failed to init GET handler for /api/VDBConfig");
 
   ESP_LOGI(TAG, "REST server started");
+  return ESP_OK;
+}
+
+struct flash_file {
+  const char *name;
+  const char *buf;
+  unsigned int size;
+  const char *type;
+  bool gzipped;
+};
+
+esp_err_t file_get_handler(httpd_req_t *req) {
+  flash_file *file = (flash_file *)req->user_ctx;
+  ESP_LOGI(TAG, "HTTP Get of %s: size %u type %s: gz: %d", file->name,
+           file->size, file->type, (int)file->gzipped);
+  if (file == NULL) {
+    const char *resp = "Error: File requested was not ready";
+    return httpd_resp_send(req, resp, HTTPD_RESP_USE_STRLEN);
+  }
+
+  ESP_ERROR_CHECK(httpd_resp_set_type(req, file->type));
+  if (file->gzipped) {
+    ESP_ERROR_CHECK(httpd_resp_set_hdr(req, "Content-Encoding", "gzip"));
+  }
+  return httpd_resp_send(req, file->buf, file->size);
+}
+
+/* URI handler structure for root GET / */
+struct flash_file index_html;
+httpd_uri_t index_get = {
+    .uri = "/",
+    .method = HTTP_GET,
+    .handler = file_get_handler,
+    .user_ctx = &index_html,
+};
+
+struct flash_file elm_min_js;
+httpd_uri_t elm_min_js_get = {
+    .uri = "/elm.js",
+    .method = HTTP_GET,
+    .handler = file_get_handler,
+    .user_ctx = &elm_min_js,
+};
+
+struct flash_file favicon_ico;
+httpd_uri_t favicon_ico_get = {
+    .uri = "/favicon.ico",
+    .method = HTTP_GET,
+    .handler = file_get_handler,
+    .user_ctx = &favicon_ico,
+};
+
+esp_err_t init_static_files(httpd_handle_t server) {
+  index_html.name = "index.html";
+  index_html.buf = get_index_html();
+  index_html.size = get_index_html_size();
+  index_html.type = "text/html";
+  index_html.gzipped = false;
+  ESP_LOGI(TAG, "Initialized %s of size %d to %p", index_html.name,
+           index_html.size, index_html.buf);
+
+  elm_min_js.name = "elm.min.js";
+  elm_min_js.buf = get_elm_min_js();
+  elm_min_js.size = get_elm_min_js_size();
+  elm_min_js.type = "application/javascript";
+  elm_min_js.gzipped = true;
+  ESP_LOGI(TAG, "Initialized %s of size %d to %p", elm_min_js.name,
+           elm_min_js.size, elm_min_js.buf);
+
+  favicon_ico.name = "favicon.ico";
+  favicon_ico.buf = get_favicon();
+  favicon_ico.size = get_favicon_size();
+  favicon_ico.type = "image/png";
+  favicon_ico.gzipped = true;
+  ESP_LOGI(TAG, "Initialized %s of size %d to %p", favicon_ico.name,
+           favicon_ico.size, favicon_ico.buf);
+
+  // UI Files
+  ESP_ERROR_CHECK(httpd_register_uri_handler(server, &index_get));
+  ESP_ERROR_CHECK(httpd_register_uri_handler(server, &elm_min_js_get));
+  ESP_ERROR_CHECK(httpd_register_uri_handler(server, &favicon_ico_get));
+
   return ESP_OK;
 }

@@ -1,9 +1,9 @@
+#include "common.hpp"
 #include "connection_manager.h"
 #include "defines.h"
+#include "foxglove-ws.hpp"
 #include "status_led.hpp"
 #include "webserver.hpp"
-
-#include "common.hpp"
 
 #include "vdb/registry.hpp"
 #include "vdb/types.hpp"
@@ -63,6 +63,12 @@ public:
   }
 
   cJSON *current_node() { return node_stack[node_stack.size() - 1]; }
+  std::string get_string() {
+    const char *json_str = cJSON_Print(root);
+    std::string str{json_str};
+    cJSON_free((void *)json_str);
+    return str;
+  }
 
 private:
   cJSON *root;
@@ -81,6 +87,7 @@ extern "C" void app_main(void) {
 
   ESP_LOGI(TAG, "Initializing WiFi STA...");
   init_wifi_sta();
+  void foxglove_init_ws(void *arg_server);
 
   ESP_LOGI(TAG, "Initializing MDNS...");
   init_mdns();
@@ -108,9 +115,11 @@ extern "C" void app_main(void) {
   reg.install_data_callback([](const VDP::Channel &chan) {
     JSONVisitor visitor;
     chan.data->Visit(&visitor);
-    const char *json_str = cJSON_Print(visitor.current_node());
-    printf("got data\n%s\n", json_str);
-    cJSON_free((void *)json_str);
+    std::string str = visitor.get_string();
+    esp_err_t e = send_string_to_ws(str);
+    if (e != ESP_OK) {
+      ESP_LOGW(TAG, "couldnt send to websocket");
+    }
   });
 
   ESP_LOGI(TAG, "Finished Initialization.");
