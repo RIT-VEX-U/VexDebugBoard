@@ -6,7 +6,7 @@
 #include <esp_timer.h>
 
 #include "common.hpp"
-#include "website.h"
+// #include "website.h"
 
 static const char *TAG = "api";
 
@@ -182,6 +182,15 @@ httpd_uri_t favicon_ico_get = {
     .handler = file_get_handler,
     .user_ctx = &favicon_ico,
 };
+
+const char *get_index_html() { return ""; }
+int get_index_html_size() { return 0; }
+
+const char *get_elm_min_js() { return ""; }
+int get_elm_min_js_size() { return 0; }
+
+const char *get_favicon() { return ""; }
+int get_favicon_size() { return 0; }
 
 esp_err_t init_static_files(httpd_handle_t server) {
   index_html.name = "index.html";

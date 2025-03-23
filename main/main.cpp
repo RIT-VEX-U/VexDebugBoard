@@ -86,11 +86,12 @@ extern "C" void app_main(void) {
   // init_wifi_ap();
 
   ESP_LOGI(TAG, "Initializing WiFi STA...");
-  init_wifi_sta();
-  void foxglove_init_ws(void *arg_server);
+  // init_wifi_sta();
+  init_wifi_ap();
+  // void foxglove_init_ws(void *arg_server);
 
-  ESP_LOGI(TAG, "Initializing MDNS...");
-  init_mdns();
+  // ESP_LOGI(TAG, "Initializing MDNS...");
+  // init_mdns();
 
   ESP_LOGI(TAG, "Initializing Serial Connection...");
   constexpr int BRAIN_UART_TXD = 6;
