@@ -5,3 +5,6 @@ managed_components
 trace
 sdkconfig.old
 dependencies.lock
+
+elm-stuff
+partition_table
