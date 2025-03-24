@@ -86,8 +86,8 @@ extern "C" void app_main(void) {
   // init_wifi_ap();
 
   ESP_LOGI(TAG, "Initializing WiFi STA...");
-  // init_wifi_sta();
-  init_wifi_ap();
+  init_wifi_sta();
+  // init_wifi_ap();
   // void foxglove_init_ws(void *arg_server);
 
   // ESP_LOGI(TAG, "Initializing MDNS...");
