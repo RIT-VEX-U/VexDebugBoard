@@ -11,6 +11,8 @@ import Element.Font as Font
 import Element.Input as Input
 import Element.Region as Region
 import Http
+import Url
+import Browser.Navigation as Nav
 import Pages.Dashboard as Dashboard
 import Time
 import UiUtil exposing (pageTitle, pallete)
@@ -206,16 +208,21 @@ default_host : String
 default_host =
     -- controls where our requests go before we get an IP. when using elm reactor and hosting ui locally, this should be the mdns name or the ip of the board
     -- when "in production" (served from the esp32) leave this blank and it will request back to the board whereever it is
-    "http://debug.local"
+    ""
 
+init : () -> Url.Url -> Nav.Key -> ( MModel, Cmd MMsg)
+init flags url key = ( NotConnected [ "Connecting..." ], Api.sysInfoRequest default_host SysinfoReceived )
 
 main : Program () MModel MMsg
 main =
-    Browser.document
-        { init = \_ -> ( NotConnected [ "Connecting..." ], Api.sysInfoRequest default_host SysinfoReceived )
+    Browser.application
+        {
+        init = init
         , view = mview
         , update = mupdate
         , subscriptions = subscriptions
+        , onUrlChange = UrlChanged
+        , onUrlRequest = LinkClicked
         }
 
 
@@ -279,7 +286,7 @@ mupdate rinfo mmodel =
                     update msg model
                         |> Tuple.mapSecond (\cmd -> Cmd.map AppMsg cmd)
                         |> Tuple.mapFirst (\mod -> Connected mod)
-
+        _->(mmodel, Cmd.none)
 
 mview : MModel -> Document MMsg
 mview mmod =
@@ -297,3 +304,5 @@ mview mmod =
 type MMsg
     = SysinfoReceived (Result Http.Error Common.SysInfo)
     | AppMsg Msg
+    | LinkClicked Browser.UrlRequest
+    | UrlChanged Url.Url
