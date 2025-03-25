@@ -9,10 +9,11 @@ with open(inputFile, 'rb') as f:
     l = [str(num) for num in b]
 
     template = f"""
-    const unsigned char {cname}[] = {{{','.join(l)}}};
-    const unsinged int {cname}_length = {len(l)};
+    static const char {cname}[] = {{{','.join(l)}}};
+    static const unsigned int {cname}_length = {len(l)};
+    const char* get_{cname}(){{return {cname};}}
+    unsigned int get_{cname}_size(){{return {cname}_length;}}
     """
-    print(template)
 
 with open(outputFile, 'w') as f:
     f.write(template)

@@ -12,8 +12,8 @@
 
 static const char *TAG = "con_man";
 
-#define EXAMPLE_ESP_WIFI_SSID "ATT5MEdBiW"
-#define EXAMPLE_ESP_WIFI_PASS "t8+a6m3qgu4t"
+#define EXAMPLE_ESP_WIFI_SSID "RIT-WiFi"
+#define EXAMPLE_ESP_WIFI_PASS ""
 #define EXAMPLE_ESP_MAXIMUM_RETRY 5
 
 #define ESP_WIFI_SAE_MODE WPA3_SAE_PWE_HUNT_AND_PECK
@@ -112,7 +112,7 @@ void init_wifi_sta(void) {
   wifi_config_t wifi_config = {};
   memcpy(wifi_config.sta.ssid, sta_ssid, 32);
   memcpy(wifi_config.sta.password, sta_pass, 32);
-  wifi_config.sta.threshold.authmode = WIFI_AUTH_WPA_WPA2_PSK;
+  wifi_config.sta.threshold.authmode = WIFI_AUTH_OPEN;
   wifi_config.sta.sae_pwe_h2e = ESP_WIFI_SAE_MODE;
   // wifi_config.sta.sae_h2e_identifier = EXAMPLE_H2E_IDENTIFIER;
 
