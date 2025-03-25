@@ -9,7 +9,6 @@ import Element.Input as Input
 import Pages.Dashboard exposing (view)
 import UiUtil exposing (pageTitle, pallete, textModifiedLabel, tooltip)
 
-
 view : Maybe ConfigPair -> Element Msg
 view mcp =
     case mcp of
