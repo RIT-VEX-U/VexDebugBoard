@@ -25,6 +25,11 @@ class ChannelVisitor : public VDP::UpcastNumbersVisitor {
 public:
   ChannelVisitor();
   ~ChannelVisitor();
+  ChannelVisitor(const ChannelVisitor &) = delete;
+  ChannelVisitor &operator=(const ChannelVisitor &) = delete;
+
+  ChannelVisitor(ChannelVisitor &&) = default;
+  ChannelVisitor &operator=(ChannelVisitor &&) = default;
 
   void VisitRecord(const VDP::Record *record);
 
@@ -36,7 +41,7 @@ public:
   cJSON *current_node();
   std::string get_string();
 
-private:
+  // private:
   cJSON *root;
   std::vector<cJSON *> node_stack;
 };

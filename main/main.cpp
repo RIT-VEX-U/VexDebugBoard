@@ -22,6 +22,32 @@ bool setup_finished = false;
 
 #include "cJSON.h"
 
+std::string send_advertisement_msg(std::vector<VDP::Channel> activeChannels) {
+  cJSON *root = cJSON_CreateObject();
+  cJSON_AddStringToObject(root, "type", "advertisement");
+
+  cJSON *channelArray = cJSON_AddArrayToObject(root, "channel");
+
+  std::vector<ChannelVisitor *> visitors;
+
+  for (VDP::Channel channel : activeChannels) {
+    visitors.emplace_back(new ChannelVisitor());
+    channel.data->Visit(visitors[visitors.size() - 1]);
+    cJSON *subObject = visitors[visitors.size() - 1]->current_node();
+    cJSON_AddItemReferenceToArray(channelArray, subObject);
+  }
+
+  const char *json_str = cJSON_Print(root);
+  std::string str(json_str);
+  cJSON_free((void *)json_str);
+  for (auto *v : visitors) {
+    delete v;
+  }
+  cJSON_Delete(root);
+  // ESP_LOGI(TAG, "size: %d", (int)visitors[0].node_stack.size());
+  return str;
+}
+
 extern "C" void app_main(void) {
 
   ESP_ERROR_CHECK(init_nvs());
@@ -82,10 +108,8 @@ extern "C" void app_main(void) {
         }
         if (!data_mode) {
           data_mode = true;
-          ChannelVisitor channelVisitor;
-          chan.data->Visit(&channelVisitor);
-          std::string channelData = channelVisitor.get_string();
-          ESP_LOGI(TAG, "%s", channelData.c_str());
+          std::string advertisementStr = send_advertisement_msg(activeChannels);
+          ESP_LOGI(TAG, "%s", advertisementStr.c_str());
           // send_to_ws();
         }
         // send_to_ws(data_json);
