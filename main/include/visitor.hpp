@@ -16,7 +16,7 @@ public:
   cJSON *current_node();
   std::string get_string();
 
-private:
+  // private:
   cJSON *root;
   std::vector<cJSON *> node_stack;
 };

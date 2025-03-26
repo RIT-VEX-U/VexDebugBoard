@@ -26,7 +26,7 @@ std::string send_advertisement_msg(std::vector<VDP::Channel> activeChannels) {
   cJSON *root = cJSON_CreateObject();
   cJSON_AddStringToObject(root, "type", "advertisement");
 
-  cJSON *channelArray = cJSON_AddArrayToObject(root, "channel");
+  cJSON *channelArray = cJSON_AddArrayToObject(root, "channels");
 
   std::vector<ChannelVisitor *> visitors;
 
@@ -34,7 +34,12 @@ std::string send_advertisement_msg(std::vector<VDP::Channel> activeChannels) {
     visitors.emplace_back(new ChannelVisitor());
     channel.data->Visit(visitors[visitors.size() - 1]);
     cJSON *subObject = visitors[visitors.size() - 1]->current_node();
-    cJSON_AddItemReferenceToArray(channelArray, subObject);
+    cJSON *newObject = cJSON_CreateObject();
+
+    cJSON_AddItemReferenceToObject(newObject, "schema", subObject);
+    cJSON_AddNumberToObject(newObject, "channel_id", channel.getID());
+
+    cJSON_AddItemToArray(channelArray, newObject);
   }
 
   const char *json_str = cJSON_Print(root);
@@ -43,6 +48,24 @@ std::string send_advertisement_msg(std::vector<VDP::Channel> activeChannels) {
   for (auto *v : visitors) {
     delete v;
   }
+  cJSON_Delete(root);
+  // ESP_LOGI(TAG, "size: %d", (int)visitors[0].node_stack.size());
+  return str;
+}
+
+std::string send_data_msg(VDP::Channel channel) {
+
+  cJSON *root = cJSON_CreateObject();
+  DataJSONVisitor visitor;
+  channel.data->Visit(&visitor);
+  cJSON_AddNumberToObject(root, "channel-id", channel.getID());
+  cJSON_AddStringToObject(root, "type", "data");
+  cJSON_AddItemReferenceToObject(root, "data", visitor.current_node());
+
+  const char *json_str = cJSON_Print(root);
+  std::string str(json_str);
+  cJSON_free((void *)json_str);
+
   cJSON_Delete(root);
   // ESP_LOGI(TAG, "size: %d", (int)visitors[0].node_stack.size());
   return str;
@@ -101,8 +124,9 @@ extern "C" void app_main(void) {
       [&data_mode, &activeChannels](const VDP::Channel &chan) {
         DataJSONVisitor visitor;
         chan.data->Visit(&visitor);
-        std::string str = visitor.get_string();
-        esp_err_t e = send_string_to_ws(str);
+        std::string dataStr = send_data_msg(chan);
+        ESP_LOGI(TAG, "%s", dataStr.c_str());
+        esp_err_t e = send_string_to_ws(dataStr);
         if (e != ESP_OK) {
           ESP_LOGW(TAG, "couldnt send to websocket");
         }
@@ -110,7 +134,7 @@ extern "C" void app_main(void) {
           data_mode = true;
           std::string advertisementStr = send_advertisement_msg(activeChannels);
           ESP_LOGI(TAG, "%s", advertisementStr.c_str());
-          // send_to_ws();
+          esp_err_t edos = send_string_to_ws(advertisementStr);
         }
         // send_to_ws(data_json);
       });

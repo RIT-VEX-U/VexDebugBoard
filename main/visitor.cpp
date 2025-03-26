@@ -97,6 +97,7 @@ void ChannelVisitor::VisitAnyUint(const std::string &name, uint64_t value,
 cJSON *ChannelVisitor::current_node() {
   return node_stack[node_stack.size() - 1];
 }
+
 std::string ChannelVisitor::get_string() {
   const char *json_str = cJSON_Print(root);
   std::string str{json_str};
