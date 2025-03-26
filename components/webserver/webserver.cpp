@@ -1,10 +1,10 @@
 #include "webserver.hpp"
 
 #include <esp_http_server.h>
-
 #include <esp_log.h>
 #include <mdns.h>
 #include <stdio.h>
+#include <vector>
 
 #include "freertos/semphr.h"
 #include "rest.hpp"
@@ -71,6 +71,7 @@ esp_err_t ws_handler(httpd_req_t *req) {
     global_fd = httpd_req_to_sockfd(req);
 
     ESP_LOGI(TAG, "Handshake done, the new connection was opened");
+
     return ESP_OK;
   }
   httpd_ws_frame_t ws_pkt;

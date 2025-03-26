@@ -21,13 +21,13 @@ bool setup_finished = false;
 
 #include "cJSON.h"
 
-class JSONVisitor : public VDP::UpcastNumbersVisitor {
+class DataJSONVisitor : public VDP::UpcastNumbersVisitor {
 public:
-  JSONVisitor() {
+  DataJSONVisitor() {
     root = cJSON_CreateObject();
     node_stack.push_back(root);
   }
-  ~JSONVisitor() { cJSON_Delete(root); }
+  ~DataJSONVisitor() { cJSON_Delete(root); }
 
   void VisitRecord(const VDP::Record *record) {
     cJSON *oldroot = current_node();
@@ -60,6 +60,66 @@ public:
   void VisitAnyUint(const std::string &name, uint64_t value,
                     const VDP::Part *) override {
     cJSON_AddNumberToObject(current_node(), name.c_str(), (double)value);
+  }
+
+  cJSON *current_node() { return node_stack[node_stack.size() - 1]; }
+  std::string get_string() {
+    const char *json_str = cJSON_Print(root);
+    std::string str{json_str};
+    cJSON_free((void *)json_str);
+    return str;
+  }
+
+private:
+  cJSON *root;
+  std::vector<cJSON *> node_stack;
+};
+
+class ChannelVisitor : public VDP::UpcastNumbersVisitor {
+public:
+  ChannelVisitor() {
+    root = cJSON_CreateObject();
+    node_stack.push_back(root);
+  }
+  ~ChannelVisitor() { cJSON_Delete(root); }
+
+  void VisitRecord(const VDP::Record *record) {
+    cJSON *newroot = current_node();
+
+    cJSON_AddStringToObject(newroot, "name", record->get_name().c_str());
+    cJSON_AddStringToObject(newroot, "type", "record");
+    cJSON *fieldsArray = cJSON_AddArrayToObject(newroot, "fields");
+
+    for (const VDP::PartPtr &field : record->get_fields()) {
+      cJSON *elementRoot = cJSON_CreateObject();
+      node_stack.push_back(elementRoot);
+      field->Visit(this);
+      node_stack.pop_back();
+      cJSON_AddItemToArray(fieldsArray, elementRoot);
+    }
+  }
+
+  void VisitString(const VDP::String *str) {
+    std::string name = str->get_name();
+
+    cJSON *oldroot = current_node();
+    cJSON_AddStringToObject(oldroot, "name", name.c_str());
+    cJSON_AddStringToObject(oldroot, "type", "string");
+  }
+  void VisitAnyFloat(const std::string &name, double value,
+                     const VDP::Part *) override {
+    cJSON_AddStringToObject(current_node(), "name", name.c_str());
+    cJSON_AddStringToObject(current_node(), "type", "float");
+  }
+  void VisitAnyInt(const std::string &name, int64_t value,
+                   const VDP::Part *) override {
+    cJSON_AddStringToObject(current_node(), "name", name.c_str());
+    cJSON_AddStringToObject(current_node(), "type", "int");
+  }
+  void VisitAnyUint(const std::string &name, uint64_t value,
+                    const VDP::Part *) override {
+    cJSON_AddStringToObject(current_node(), "name", name.c_str());
+    cJSON_AddStringToObject(current_node(), "type", "uint");
   }
 
   cJSON *current_node() { return node_stack[node_stack.size() - 1]; }
@@ -108,19 +168,40 @@ extern "C" void app_main(void) {
   if (server_handle == NULL) {
     ESP_LOGE(TAG, "Failed to initialize log endpoint");
   }
+  std::vector<VDP::Channel> activeChannels{};
 
+  bool data_mode = false;
+  // what the webserver does when it recieves a new channel from the brain
   reg.install_broadcast_callback(
-      [](const VDP::Channel &chan) { printf("got channel\n"); });
+      [&data_mode, &activeChannels](VDP::Channel new_chan) {
+        if (data_mode) {
+          // clear old channels
+          data_mode = false;
+          activeChannels = {};
+        }
+        // add new channel to list of active channels
+        activeChannels.push_back(new_chan);
+      });
 
-  reg.install_data_callback([](const VDP::Channel &chan) {
-    JSONVisitor visitor;
-    chan.data->Visit(&visitor);
-    std::string str = visitor.get_string();
-    esp_err_t e = send_string_to_ws(str);
-    if (e != ESP_OK) {
-      ESP_LOGW(TAG, "couldnt send to websocket");
-    }
-  });
+  // the webserver sending data it gets from the brain to the websocket
+  reg.install_data_callback(
+      [&data_mode, &activeChannels](const VDP::Channel &chan) {
+        DataJSONVisitor visitor;
+        chan.data->Visit(&visitor);
+        std::string str = visitor.get_string();
+        esp_err_t e = send_string_to_ws(str);
+        if (e != ESP_OK) {
+          ESP_LOGW(TAG, "couldnt send to websocket");
+        }
+        if (!data_mode) {
+          data_mode = true;
+          ChannelVisitor channelVisitor;
+          chan.data->Visit(&channelVisitor);
+          std::string channelData = channelVisitor.get_string();
+          send_to_ws();
+        }
+        send_to_ws(data_json);
+      });
 
   ESP_LOGI(TAG, "Finished Initialization.");
   setup_finished = true;
