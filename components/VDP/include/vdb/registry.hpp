@@ -1,3 +1,4 @@
+#pragma once
 #include "vdb/protocol.hpp"
 
 namespace VDP {

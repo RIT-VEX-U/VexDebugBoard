@@ -3,6 +3,7 @@
 #include "defines.h"
 #include "foxglove-ws.hpp"
 #include "status_led.hpp"
+#include "visitor.hpp"
 #include "webserver.hpp"
 
 #include "vdb/registry.hpp"
@@ -20,120 +21,6 @@ static const char *TAG = "main";
 bool setup_finished = false;
 
 #include "cJSON.h"
-
-class DataJSONVisitor : public VDP::UpcastNumbersVisitor {
-public:
-  DataJSONVisitor() {
-    root = cJSON_CreateObject();
-    node_stack.push_back(root);
-  }
-  ~DataJSONVisitor() { cJSON_Delete(root); }
-
-  void VisitRecord(const VDP::Record *record) {
-    cJSON *oldroot = current_node();
-    cJSON *newroot = cJSON_CreateObject();
-    node_stack.push_back(newroot);
-
-    for (const VDP::PartPtr &field : record->get_fields()) {
-      field->Visit(this);
-    }
-    node_stack.pop_back();
-
-    std::string name = record->get_name();
-    cJSON_AddItemToObject(oldroot, name.c_str(), newroot);
-  }
-  void VisitString(const VDP::String *str) {
-    std::string name = str->get_name();
-    std::string value = str->get_value();
-
-    cJSON *oldroot = current_node();
-    cJSON_AddStringToObject(oldroot, name.c_str(), value.c_str());
-  }
-  void VisitAnyFloat(const std::string &name, double value,
-                     const VDP::Part *) override {
-    cJSON_AddNumberToObject(current_node(), name.c_str(), value);
-  }
-  void VisitAnyInt(const std::string &name, int64_t value,
-                   const VDP::Part *) override {
-    cJSON_AddNumberToObject(current_node(), name.c_str(), (double)value);
-  }
-  void VisitAnyUint(const std::string &name, uint64_t value,
-                    const VDP::Part *) override {
-    cJSON_AddNumberToObject(current_node(), name.c_str(), (double)value);
-  }
-
-  cJSON *current_node() { return node_stack[node_stack.size() - 1]; }
-  std::string get_string() {
-    const char *json_str = cJSON_Print(root);
-    std::string str{json_str};
-    cJSON_free((void *)json_str);
-    return str;
-  }
-
-private:
-  cJSON *root;
-  std::vector<cJSON *> node_stack;
-};
-
-class ChannelVisitor : public VDP::UpcastNumbersVisitor {
-public:
-  ChannelVisitor() {
-    root = cJSON_CreateObject();
-    node_stack.push_back(root);
-  }
-  ~ChannelVisitor() { cJSON_Delete(root); }
-
-  void VisitRecord(const VDP::Record *record) {
-    cJSON *newroot = current_node();
-
-    cJSON_AddStringToObject(newroot, "name", record->get_name().c_str());
-    cJSON_AddStringToObject(newroot, "type", "record");
-    cJSON *fieldsArray = cJSON_AddArrayToObject(newroot, "fields");
-
-    for (const VDP::PartPtr &field : record->get_fields()) {
-      cJSON *elementRoot = cJSON_CreateObject();
-      node_stack.push_back(elementRoot);
-      field->Visit(this);
-      node_stack.pop_back();
-      cJSON_AddItemToArray(fieldsArray, elementRoot);
-    }
-  }
-
-  void VisitString(const VDP::String *str) {
-    std::string name = str->get_name();
-
-    cJSON *oldroot = current_node();
-    cJSON_AddStringToObject(oldroot, "name", name.c_str());
-    cJSON_AddStringToObject(oldroot, "type", "string");
-  }
-  void VisitAnyFloat(const std::string &name, double value,
-                     const VDP::Part *) override {
-    cJSON_AddStringToObject(current_node(), "name", name.c_str());
-    cJSON_AddStringToObject(current_node(), "type", "float");
-  }
-  void VisitAnyInt(const std::string &name, int64_t value,
-                   const VDP::Part *) override {
-    cJSON_AddStringToObject(current_node(), "name", name.c_str());
-    cJSON_AddStringToObject(current_node(), "type", "int");
-  }
-  void VisitAnyUint(const std::string &name, uint64_t value,
-                    const VDP::Part *) override {
-    cJSON_AddStringToObject(current_node(), "name", name.c_str());
-    cJSON_AddStringToObject(current_node(), "type", "uint");
-  }
-
-  cJSON *current_node() { return node_stack[node_stack.size() - 1]; }
-  std::string get_string() {
-    const char *json_str = cJSON_Print(root);
-    std::string str{json_str};
-    cJSON_free((void *)json_str);
-    return str;
-  }
-
-private:
-  cJSON *root;
-  std::vector<cJSON *> node_stack;
-};
 
 extern "C" void app_main(void) {
 
@@ -198,9 +85,10 @@ extern "C" void app_main(void) {
           ChannelVisitor channelVisitor;
           chan.data->Visit(&channelVisitor);
           std::string channelData = channelVisitor.get_string();
-          send_to_ws();
+          ESP_LOGI(TAG, "%s", channelData.c_str());
+          // send_to_ws();
         }
-        send_to_ws(data_json);
+        // send_to_ws(data_json);
       });
 
   ESP_LOGI(TAG, "Finished Initialization.");
