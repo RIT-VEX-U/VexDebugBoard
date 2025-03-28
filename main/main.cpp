@@ -63,8 +63,6 @@ extern "C" void app_main(void) {
   if (server_handle == NULL) {
     ESP_LOGE(TAG, "Failed to initialize log endpoint");
   }
-  int channelOpenTime;
-  int xTime;
 
   bool data_mode = false;
   // what the webserver does when it recieves a new channel from the brain
@@ -79,26 +77,23 @@ extern "C" void app_main(void) {
   });
 
   // the webserver sending data it gets from the brain to the websocket
-  reg.install_data_callback(
-      [&data_mode, &channelOpenTime, &xTime](const VDP::Channel &chan) {
-        DataJSONVisitor visitor;
-        chan.data->Visit(&visitor);
-        std::string dataStr = send_data_msg(chan);
-        ESP_LOGI(TAG, "%s", dataStr.c_str());
-        esp_err_t e = send_string_to_ws(dataStr);
-        xTime = time_t() - channelOpenTime;
-        if (e != ESP_OK) {
-          ESP_LOGW(TAG, "couldnt send to websocket");
-        }
-        if (!data_mode) {
-          data_mode = true;
-          std::string advertisementStr = send_advertisement_msg(activeChannels);
-          ESP_LOGI(TAG, "%s", advertisementStr.c_str());
-          esp_err_t edos = send_string_to_ws(advertisementStr);
-          channelOpenTime = time_t();
-        }
-        // send_to_ws(data_json);
-      });
+  reg.install_data_callback([&data_mode](const VDP::Channel &chan) {
+    DataJSONVisitor visitor;
+    chan.data->Visit(&visitor);
+    std::string dataStr = send_data_msg(chan);
+    ESP_LOGI(TAG, "%s", dataStr.c_str());
+    esp_err_t e = send_string_to_ws(dataStr);
+    if (e != ESP_OK) {
+      ESP_LOGW(TAG, "couldnt send to websocket");
+    }
+    if (!data_mode) {
+      data_mode = true;
+      std::string advertisementStr = send_advertisement_msg(activeChannels);
+      ESP_LOGI(TAG, "%s", advertisementStr.c_str());
+      esp_err_t edos = send_string_to_ws(advertisementStr);
+    }
+    // send_to_ws(data_json);
+  });
 
   ESP_LOGI(TAG, "Finished Initialization.");
   setup_finished = true;

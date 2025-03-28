@@ -74,13 +74,12 @@ esp_err_t ws_handler(httpd_req_t *req) {
     global_fd = httpd_req_to_sockfd(req);
 
     ESP_LOGI(TAG, "Handshake done, the new connection was opened");
+    std::string advertisementStr = (*get_advertisement_message)();
+    ESP_LOGI(TAG, "%s", advertisementStr.c_str());
+    esp_err_t edos = send_string_to_ws(advertisementStr);
 
     return ESP_OK;
   }
-
-  std::string advertisementStr = (*get_advertisement_message)();
-  ESP_LOGI(TAG, "%s", advertisementStr.c_str());
-  esp_err_t edos = send_string_to_ws(advertisementStr);
 
   httpd_ws_frame_t ws_pkt;
   uint8_t *buf = NULL;

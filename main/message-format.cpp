@@ -37,9 +37,10 @@ std::string send_data_msg(const VDP::Channel &channel) {
   cJSON *root = cJSON_CreateObject();
   DataJSONVisitor visitor;
   channel.data->Visit(&visitor);
+  cJSON_AddNumberToObject(root, "rec_time", esp_timer_get_time());
   cJSON_AddNumberToObject(root, "channel_id", channel.getID());
   cJSON_AddStringToObject(root, "type", "data");
-  cJSON_AddItemReferenceToObject(root, "data",
+  cJSON_AddItemReferenceToObject(root, "motor",
                                  visitor.node_stack[visitor.node_stack.size()]);
 
   const char *json_str = cJSON_Print(root);
