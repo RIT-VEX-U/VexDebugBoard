@@ -1,3 +1,4 @@
+#pragma once
 #include "cJSON.h"
 #include "vdb/registry.hpp"
 #include "vdb/types.hpp"

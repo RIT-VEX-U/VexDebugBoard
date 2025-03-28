@@ -1,5 +1,6 @@
 #include "webserver.hpp"
 
+#include "vdb/protocol.hpp"
 #include <esp_http_server.h>
 #include <esp_log.h>
 #include <mdns.h>
@@ -66,6 +67,8 @@ static httpd_handle_t global_handle;
 static int global_fd = 0;
 
 esp_err_t ws_handler(httpd_req_t *req) {
+  std::function<std::string()> *get_advertisement_message =
+      (std::function<std::string()> *)req->user_ctx;
   if (req->method == HTTP_GET) {
     global_handle = req->handle;
     global_fd = httpd_req_to_sockfd(req);
@@ -74,6 +77,11 @@ esp_err_t ws_handler(httpd_req_t *req) {
 
     return ESP_OK;
   }
+
+  std::string advertisementStr = (*get_advertisement_message)();
+  ESP_LOGI(TAG, "%s", advertisementStr.c_str());
+  esp_err_t edos = send_string_to_ws(advertisementStr);
+
   httpd_ws_frame_t ws_pkt;
   uint8_t *buf = NULL;
   memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
@@ -112,7 +120,7 @@ esp_err_t ws_handler(httpd_req_t *req) {
   free(buf);
   return ret;
 }
-static const httpd_uri_t ws = {
+static httpd_uri_t ws = {
     .uri = "/ws",
     .method = HTTP_GET,
     .handler = ws_handler,
@@ -133,7 +141,8 @@ static const httpd_uri_t ws = {
  * @pre mDNS is initialized
  * @param port port to run server on. For browsers to see it should be 80
  */
-httpd_handle_t webserver_start(uint16_t port) {
+httpd_handle_t webserver_start(uint16_t port,
+                               std::function<std::string()> *advert_message) {
   /* Generate default configuration */
   httpd_config_t config = HTTPD_DEFAULT_CONFIG();
   config.server_port = port;
@@ -151,6 +160,7 @@ httpd_handle_t webserver_start(uint16_t port) {
     ESP_LOGE(TAG, "Failed to start HTTP server");
     return NULL;
   }
+  ws.user_ctx = (void *)advert_message;
 
   ESP_ERROR_CHECK(httpd_register_uri_handler(server, &ws));
 
