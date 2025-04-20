@@ -67,14 +67,13 @@ static httpd_handle_t global_handle;
 static int global_fd = 0;
 
 esp_err_t ws_handler(httpd_req_t *req) {
-  std::function<std::string()> *get_advertisement_message =
-      (std::function<std::string()> *)req->user_ctx;
+  ws_functions *funcs = (ws_functions *)req->user_ctx;
   if (req->method == HTTP_GET) {
     global_handle = req->handle;
     global_fd = httpd_req_to_sockfd(req);
 
     ESP_LOGI(TAG, "Handshake done, the new connection was opened");
-    std::string advertisementStr = (*get_advertisement_message)();
+    std::string advertisementStr = (funcs->get_adv_msg)();
     ESP_LOGI(TAG, "%s", advertisementStr.c_str());
     esp_err_t edos = send_string_to_ws(advertisementStr);
 
@@ -107,6 +106,13 @@ esp_err_t ws_handler(httpd_req_t *req) {
       free(buf);
       return ret;
     }
+    if (ws_pkt.type != HTTPD_WS_TYPE_TEXT) {
+      ESP_LOGE(TAG, "websocket was not text, unable to use %d", ret);
+      free(buf);
+      return ret;
+    }
+    funcs->rec_cb((char *)ws_pkt.payload);
+
     ESP_LOGI(TAG, "Got packet with message: %s", ws_pkt.payload);
   }
   ESP_LOGI(TAG, "Packet type: %d", ws_pkt.type);
@@ -140,8 +146,7 @@ static httpd_uri_t ws = {
  * @pre mDNS is initialized
  * @param port port to run server on. For browsers to see it should be 80
  */
-httpd_handle_t webserver_start(uint16_t port,
-                               std::function<std::string()> *advert_message) {
+httpd_handle_t webserver_start(uint16_t port, ws_functions *funcs) {
   /* Generate default configuration */
   httpd_config_t config = HTTPD_DEFAULT_CONFIG();
   config.server_port = port;
@@ -159,7 +164,7 @@ httpd_handle_t webserver_start(uint16_t port,
     ESP_LOGE(TAG, "Failed to start HTTP server");
     return NULL;
   }
-  ws.user_ctx = (void *)advert_message;
+  ws.user_ctx = (void *)funcs;
 
   ESP_ERROR_CHECK(httpd_register_uri_handler(server, &ws));
 
@@ -173,6 +178,15 @@ httpd_handle_t webserver_start(uint16_t port,
 }
 
 esp_err_t send_string_to_ws(const std::string &str) {
+  if (global_fd == 0) {
+    ESP_LOGI(TAG, "Not sending to ws bc websocket unopened");
+    return ESP_OK;
+  }
+
+  return trigger_async_send(global_handle, global_fd, str);
+}
+
+esp_err_t get_string_from_ws(const std::string &str) {
   if (global_fd == 0) {
     ESP_LOGI(TAG, "Not sending to ws bc websocket unopened");
     return ESP_OK;

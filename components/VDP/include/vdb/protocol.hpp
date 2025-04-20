@@ -3,6 +3,7 @@
 #include <array>
 #include <cstdio>
 #include <cstring>
+#include <deque>
 #include <functional>
 #include <memory>
 #include <sstream>
@@ -48,7 +49,7 @@ using Packet = std::vector<uint8_t>;
 using ChannelID = uint8_t;
 class Channel {
 public:
-  friend class Registry;
+  template <typename MutexType> friend class RegistryListener;
   explicit Channel(PartPtr schema_data) : data(schema_data) {}
   PartPtr data;
 
@@ -67,19 +68,15 @@ private:
 void dump_packet(const Packet &pac);
 std::pair<ChannelID, PartPtr> decode_broadcast(const Packet &packet);
 
-enum class PacketValidity : uint8_t {
-  Ok,
-  BadChecksum,
-  TooSmall,
-};
-
 enum class PacketType : uint8_t {
   Broadcast = 0,
   Data = 1,
 };
 enum class PacketFunction : uint8_t {
-  Send = 0,
-  Acknowledge = 1,
+  Send = 0b00,
+  Acknowledge = 0b01,
+  Response = 0b10,
+  Request = 0b11
 };
 struct PacketHeader {
   PacketType type;
@@ -88,6 +85,13 @@ struct PacketHeader {
 
 uint8_t make_header_byte(PacketHeader head);
 PacketHeader decode_header_byte(uint8_t hb);
+
+enum PacketValidity : uint8_t {
+  Ok,
+  BadChecksum,
+  TooSmall,
+};
+PacketValidity validate_packet(const VDP::Packet &packet);
 
 enum class Type : uint8_t {
   Record = 0,
@@ -133,7 +137,7 @@ public:
   virtual void read_data_from_message(PacketReader &reader) = 0;
 
   std::string get_name() const;
-  virtual void Visit(Visitor *) const = 0;
+  virtual void Visit(Visitor *) = 0;
 
 protected:
   // These are needed to decode correctly but you shouldn't call them directly
@@ -190,6 +194,11 @@ public:
   void write_channel_acknowledge(const Channel &chan);
   void write_channel_broadcast(const Channel &chan);
   void write_data_message(const Channel &part);
+  /**
+   * writes a response packet to the packets
+   * @param chan the Channel to write the data from
+   */
+  void write_response(std::deque<Channel> &channels);
 
   const Packet &get_packet() const;
 

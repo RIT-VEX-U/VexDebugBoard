@@ -7,7 +7,7 @@
 #include "webserver.hpp"
 
 #include "message-format.hpp"
-#include "vdb/registry.hpp"
+#include "vdb/registry-listener.hpp"
 #include "vdb/types.hpp"
 
 #include "vdb_device.h"
@@ -24,10 +24,6 @@ bool setup_finished = false;
 #include "cJSON.h"
 
 std::vector<VDP::Channel> activeChannels{};
-
-std::function<std::string()> get_advertisement_message = []() {
-  return send_advertisement_msg(activeChannels);
-};
 
 extern "C" void app_main(void) {
 
@@ -56,10 +52,25 @@ extern "C" void app_main(void) {
 
   VDBDevice dev{BRAIN_UART, BRAIN_UART_TXD, BRAIN_UART_RXD, BRAIN_UART_RTS,
                 BRAIN_BAUD_RATE};
-  VDP::Registry reg{&dev, VDP::Registry::Listener};
+  VDP::RegistryListener<std::mutex> reg{&dev};
 
-  httpd_handle_t server_handle =
-      webserver_start(80, &get_advertisement_message);
+  std::function<void(std::string)> receive_callback =
+      [&reg](std::string json_string) {
+        ReceiveVisitor RV(json_string, reg);
+        RV.set_data();
+        RV.send_to_reg();
+      };
+
+  std::function<std::string()> get_advertisement_message = []() {
+    return send_advertisement_msg(activeChannels);
+  };
+
+  ws_functions funcs{
+      .rec_cb = receive_callback,
+      .get_adv_msg = get_advertisement_message,
+  };
+
+  httpd_handle_t server_handle = webserver_start(80, &funcs);
   if (server_handle == NULL) {
     ESP_LOGE(TAG, "Failed to initialize log endpoint");
   }

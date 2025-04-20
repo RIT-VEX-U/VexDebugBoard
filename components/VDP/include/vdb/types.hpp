@@ -20,7 +20,7 @@ public:
   void fetch() override;
   void read_data_from_message(PacketReader &reader) override;
 
-  void Visit(Visitor *) const;
+  void Visit(Visitor *);
 
 protected:
   // Encode the schema itself for transmission on the wire
@@ -53,7 +53,7 @@ public:
   void pprint(std::stringstream &ss, size_t indent) const override;
   void pprint_data(std::stringstream &ss, size_t indent) const override;
 
-  void Visit(Visitor *) const;
+  void Visit(Visitor *);
 
 protected:
   void write_schema(PacketWriter &sofar) const override;
@@ -128,7 +128,7 @@ public:
   Float(
       std::string name,
       NumT::FetchFunc func = []() { return (NumT::NumberType)0; });
-  void Visit(Visitor *) const;
+  void Visit(Visitor *);
 };
 class Double : public Number<double, Type::Double> {
 public:
@@ -136,7 +136,7 @@ public:
   Double(
       std::string name,
       NumT::FetchFunc func = []() { return (NumT::NumberType)0; });
-  void Visit(Visitor *) const;
+  void Visit(Visitor *);
 };
 
 class Uint8 : public Number<uint8_t, Type::Uint8> {
@@ -145,7 +145,7 @@ public:
   Uint8(
       std::string name,
       NumT::FetchFunc func = []() { return (NumT::NumberType)0; });
-  void Visit(Visitor *) const;
+  void Visit(Visitor *);
 };
 class Uint16 : public Number<uint16_t, Type::Uint16> {
 public:
@@ -153,7 +153,7 @@ public:
   Uint16(
       std::string name,
       NumT::FetchFunc func = []() { return (NumT::NumberType)0; });
-  void Visit(Visitor *) const;
+  void Visit(Visitor *);
 };
 class Uint32 : public Number<uint32_t, Type::Uint32> {
 public:
@@ -161,7 +161,7 @@ public:
   Uint32(
       std::string name,
       NumT::FetchFunc func = []() { return (NumT::NumberType)0; });
-  void Visit(Visitor *) const;
+  void Visit(Visitor *);
 };
 class Uint64 : public Number<uint64_t, Type::Uint64> {
 public:
@@ -169,7 +169,7 @@ public:
   Uint64(
       std::string name,
       NumT::FetchFunc func = []() { return (NumT::NumberType)0; });
-  void Visit(Visitor *) const;
+  void Visit(Visitor *);
 };
 
 class Int8 : public Number<int8_t, Type::Int8> {
@@ -178,7 +178,7 @@ public:
   Int8(
       std::string name,
       NumT::FetchFunc func = []() { return (NumT::NumberType)0; });
-  void Visit(Visitor *) const;
+  void Visit(Visitor *);
 };
 class Int16 : public Number<int16_t, Type::Int16> {
 public:
@@ -186,7 +186,7 @@ public:
   Int16(
       std::string name,
       NumT::FetchFunc func = []() { return (NumT::NumberType)0; });
-  void Visit(Visitor *) const;
+  void Visit(Visitor *);
 };
 class Int32 : public Number<int32_t, Type::Int32> {
 public:
@@ -194,7 +194,7 @@ public:
   Int32(
       std::string name,
       NumT::FetchFunc func = []() { return (NumT::NumberType)0; });
-  void Visit(Visitor *) const;
+  void Visit(Visitor *);
 };
 
 class Int64 : public Number<int64_t, Type::Int64> {
@@ -203,29 +203,29 @@ public:
   Int64(
       std::string name,
       NumT::FetchFunc func = []() { return (NumT::NumberType)0; });
-  void Visit(Visitor *) const;
+  void Visit(Visitor *);
 };
 
 class Visitor {
 public:
   virtual ~Visitor() {}
 
-  virtual void VisitRecord(const Record *) = 0;
+  virtual void VisitRecord(Record *) = 0;
 
-  virtual void VisitString(const String *) = 0;
+  virtual void VisitString(String *) = 0;
 
-  virtual void VisitFloat(const Float *) = 0;
-  virtual void VisitDouble(const Double *) = 0;
+  virtual void VisitFloat(Float *) = 0;
+  virtual void VisitDouble(Double *) = 0;
 
-  virtual void VisitUint8(const Uint8 *) = 0;
-  virtual void VisitUint16(const Uint16 *) = 0;
-  virtual void VisitUint32(const Uint32 *) = 0;
-  virtual void VisitUint64(const Uint64 *) = 0;
+  virtual void VisitUint8(Uint8 *) = 0;
+  virtual void VisitUint16(Uint16 *) = 0;
+  virtual void VisitUint32(Uint32 *) = 0;
+  virtual void VisitUint64(Uint64 *) = 0;
 
-  virtual void VisitInt8(const Int8 *) = 0;
-  virtual void VisitInt16(const Int16 *) = 0;
-  virtual void VisitInt32(const Int32 *) = 0;
-  virtual void VisitInt64(const Int64 *) = 0;
+  virtual void VisitInt8(Int8 *) = 0;
+  virtual void VisitInt16(Int16 *) = 0;
+  virtual void VisitInt32(Int32 *) = 0;
+  virtual void VisitInt64(Int64 *) = 0;
 };
 
 class UpcastNumbersVisitor : public Visitor {
@@ -238,20 +238,20 @@ public:
                             const Part *) = 0;
 
   // Implemented to call Visitor::VisitAnyFloat
-  void VisitFloat(const Float *) override;
-  void VisitDouble(const Double *) override;
+  void VisitFloat(Float *) override;
+  void VisitDouble(Double *) override;
 
   // Implemented to call Visitor::VisitAnyUint
-  void VisitUint8(const Uint8 *) override;
-  void VisitUint16(const Uint16 *) override;
-  void VisitUint32(const Uint32 *) override;
-  void VisitUint64(const Uint64 *) override;
+  void VisitUint8(Uint8 *) override;
+  void VisitUint16(Uint16 *) override;
+  void VisitUint32(Uint32 *) override;
+  void VisitUint64(Uint64 *) override;
 
   // Implemented to call Visitor::VisitAnyInt
-  void VisitInt8(const Int8 *) override;
-  void VisitInt16(const Int16 *) override;
-  void VisitInt32(const Int32 *) override;
-  void VisitInt64(const Int64 *) override;
+  void VisitInt8(Int8 *) override;
+  void VisitInt16(Int16 *) override;
+  void VisitInt32(Int32 *) override;
+  void VisitInt64(Int64 *) override;
 };
 
 } // namespace VDP

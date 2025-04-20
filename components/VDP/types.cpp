@@ -132,51 +132,51 @@ Int16::Int16(std::string name, NumT::FetchFunc func) : NumT(name, func) {}
 Int32::Int32(std::string name, NumT::FetchFunc func) : NumT(name, func) {}
 Int64::Int64(std::string name, NumT::FetchFunc func) : NumT(name, func) {}
 
-void Record::Visit(Visitor *v) const { v->VisitRecord(this); }
-void String::Visit(Visitor *v) const { v->VisitString(this); }
+void Record::Visit(Visitor *v) { v->VisitRecord(this); }
+void String::Visit(Visitor *v) { v->VisitString(this); }
 
-void Float::Visit(Visitor *v) const { v->VisitFloat(this); }
-void Double::Visit(Visitor *v) const { v->VisitDouble(this); }
+void Float::Visit(Visitor *v) { v->VisitFloat(this); }
+void Double::Visit(Visitor *v) { v->VisitDouble(this); }
 
-void Uint8::Visit(Visitor *v) const { v->VisitUint8(this); }
-void Uint16::Visit(Visitor *v) const { v->VisitUint16(this); }
-void Uint32::Visit(Visitor *v) const { v->VisitUint32(this); }
-void Uint64::Visit(Visitor *v) const { v->VisitUint64(this); }
+void Uint8::Visit(Visitor *v) { v->VisitUint8(this); }
+void Uint16::Visit(Visitor *v) { v->VisitUint16(this); }
+void Uint32::Visit(Visitor *v) { v->VisitUint32(this); }
+void Uint64::Visit(Visitor *v) { v->VisitUint64(this); }
 
-void Int8::Visit(Visitor *v) const { v->VisitInt8(this); }
-void Int16::Visit(Visitor *v) const { v->VisitInt16(this); }
-void Int32::Visit(Visitor *v) const { v->VisitInt32(this); }
-void Int64::Visit(Visitor *v) const { v->VisitInt64(this); }
+void Int8::Visit(Visitor *v) { v->VisitInt8(this); }
+void Int16::Visit(Visitor *v) { v->VisitInt16(this); }
+void Int32::Visit(Visitor *v) { v->VisitInt32(this); }
+void Int64::Visit(Visitor *v) { v->VisitInt64(this); }
 
-void UpcastNumbersVisitor::VisitFloat(const Float *f) {
+void UpcastNumbersVisitor::VisitFloat(Float *f) {
   VisitAnyFloat(f->get_name(), f->get_value(), f);
 }
-void UpcastNumbersVisitor::VisitDouble(const Double *f) {
+void UpcastNumbersVisitor::VisitDouble(Double *f) {
   VisitAnyFloat(f->get_name(), f->get_value(), f);
 }
-void UpcastNumbersVisitor::VisitUint8(const Uint8 *f) {
+void UpcastNumbersVisitor::VisitUint8(Uint8 *f) {
   VisitAnyUint(f->get_name(), (uint64_t)f->get_value(), f);
 }
-void UpcastNumbersVisitor::VisitUint16(const Uint16 *f) {
+void UpcastNumbersVisitor::VisitUint16(Uint16 *f) {
   VisitAnyUint(f->get_name(), (uint64_t)f->get_value(), f);
 }
-void UpcastNumbersVisitor::VisitUint32(const Uint32 *f) {
+void UpcastNumbersVisitor::VisitUint32(Uint32 *f) {
   VisitAnyUint(f->get_name(), (uint64_t)f->get_value(), f);
 }
-void UpcastNumbersVisitor::VisitUint64(const Uint64 *f) {
+void UpcastNumbersVisitor::VisitUint64(Uint64 *f) {
   VisitAnyUint(f->get_name(), (uint64_t)f->get_value(), f);
 }
 
-void UpcastNumbersVisitor::VisitInt8(const Int8 *f) {
+void UpcastNumbersVisitor::VisitInt8(Int8 *f) {
   VisitAnyUint(f->get_name(), (int64_t)f->get_value(), f);
 }
-void UpcastNumbersVisitor::VisitInt16(const Int16 *f) {
+void UpcastNumbersVisitor::VisitInt16(Int16 *f) {
   VisitAnyUint(f->get_name(), (int64_t)f->get_value(), f);
 }
-void UpcastNumbersVisitor::VisitInt32(const Int32 *f) {
+void UpcastNumbersVisitor::VisitInt32(Int32 *f) {
   VisitAnyUint(f->get_name(), (int64_t)f->get_value(), f);
 }
-void UpcastNumbersVisitor::VisitInt64(const Int64 *f) {
+void UpcastNumbersVisitor::VisitInt64(Int64 *f) {
   VisitAnyUint(f->get_name(), (int64_t)f->get_value(), f);
 }
 

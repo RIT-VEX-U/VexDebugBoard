@@ -123,6 +123,30 @@ void PacketWriter::write_data_message(const Channel &chan) {
   write_number<uint32_t>(crc);
 }
 
+/**
+ * writes a receive packet to the packets
+ * @param chan the channel to request
+ */
+void PacketWriter::write_response(std::deque<Channel> &channels) {
+  clear();
+  // makes a header byte with the type broadcast and the function Receive
+  const uint8_t header = make_header_byte(
+      PacketHeader{PacketType::Data, PacketFunction::Response});
+
+  // writes the header byte and number of channels to send to the packet
+  write_number<uint8_t>(header);
+
+  write_number<size_t>(channels.size());
+  write_number<uint8_t>(header);
+  write_number<ChannelID>(channels[0].getID());
+  channels[0].data->write_message(*this);
+  channels.pop_front();
+
+  // creates and writes the Checksum to the packet
+  uint32_t crc = CRC32::calculate(sofar.data(), sofar.size());
+  write_number<uint32_t>(crc);
+}
+
 std::string to_string(Type t) {
   switch (t) {
   case Type::Record:
