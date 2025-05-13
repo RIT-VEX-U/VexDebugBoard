@@ -49,14 +49,14 @@ public:
 };
 class ReceiveVisitor : public VDP::Visitor {
 public:
-  ReceiveVisitor(std::string json_str, RegistryListener reg);
-  ReceiveVisitor(cJSON *input_json, RegistryListener reg);
-  ~ReceiveVisitor();
-  ReceiveVisitor(const ReceiveVisitor &) = delete;
-  ReceiveVisitor &operator=(const ReceiveVisitor &) = delete;
+  ReceiveVisitor(std::string json_str, VDP::RegistryListener<std::mutex> &reg);
+  ReceiveVisitor(cJSON *input_json, VDP::RegistryListener<std::mutex> &reg);
+  // ~ReceiveVisitor();
+  // ReceiveVisitor(const ReceiveVisitor &) = delete;
+  // ReceiveVisitor &operator=(const ReceiveVisitor &) = delete;
 
-  ReceiveVisitor(ReceiveVisitor &&) = default;
-  ReceiveVisitor &operator=(ReceiveVisitor &&) = default;
+  // ReceiveVisitor(ReceiveVisitor &&) = default;
+  // ReceiveVisitor &operator=(ReceiveVisitor &&) = default;
 
   void VisitRecord(VDP::Record *record) override;
 
@@ -89,7 +89,7 @@ public:
   VDP::PacketType type;
   VDP::PartPtr data;
   cJSON *input_json;
-  RegistryListener reg;
+  VDP::RegistryListener<std::mutex> &reg;
 
   cJSON *buffer_json;
 

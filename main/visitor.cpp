@@ -105,12 +105,14 @@ std::string ChannelVisitor::get_string() {
   return str;
 }
 
-ReceiveVisitor::ReceiveVisitor(std::string json_str, RegistryListener reg)
+ReceiveVisitor::ReceiveVisitor(std::string json_str,
+                               VDP::RegistryListener<std::mutex> &reg)
     : reg(reg) {
   input_json = cJSON_Parse(json_str.c_str());
 }
 
-ReceiveVisitor::ReceiveVisitor(cJSON *input_json, RegistryListener reg)
+ReceiveVisitor::ReceiveVisitor(cJSON *input_json,
+                               VDP::RegistryListener<std::mutex> &reg)
     : input_json(input_json), reg(reg) {}
 
 void ReceiveVisitor::VisitRecord(VDP::Record *record) {
@@ -169,8 +171,9 @@ void ReceiveVisitor::set_data() {
 
   id = cJSON_GetObjectItem(input_json, "channel_id")->valueint;
 
-  std::string type = cJSON_GetObjectItem(input_json, "type")->valuestring;
-  if (type == "data") {
+  std::string type_string =
+      cJSON_GetObjectItem(input_json, "type")->valuestring;
+  if (type_string == "data") {
     type = VDP::PacketType::Data;
   } else {
     type = VDP::PacketType::Broadcast;
@@ -180,7 +183,7 @@ void ReceiveVisitor::set_data() {
 
   cJSON *data_json = cJSON_GetObjectItem(input_json, "data");
   for (int i = 0; i < cJSON_GetArraySize(data_json); i++) {
-    reg.get_remote_schema()->Visit(&RV);
+    reg.get_remote_schema(id)->Visit(&RV);
     data_parts.push_back(reg.get_remote_schema(id));
   }
   data = (std::shared_ptr<VDP::Record>)new VDP::Record("data", data_parts);
@@ -204,8 +207,8 @@ VDP::PartPtr ReceiveVisitor::get_data() {
 
   cJSON *data_json = cJSON_GetObjectItem(input_json, "data");
   for (int i = 0; i < cJSON_GetArraySize(data_json); i++) {
-    reg.get_ reg.get->Visit(&RV);
-    data_parts.push_back(get_remote_schema(id));
+    reg.get_remote_schema(id)->Visit(&RV);
+    data_parts.push_back(reg.get_remote_schema(id));
   }
   VDP::PartPtr data_part =
       (std::shared_ptr<VDP::Record>)new VDP::Record("data", data_parts);

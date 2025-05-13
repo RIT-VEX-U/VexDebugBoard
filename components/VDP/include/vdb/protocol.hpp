@@ -22,19 +22,19 @@ void delay_ms(uint32_t ms);
 #define VDPWARN
 
 #ifdef VDPWARN
-#define VDPWarnf(fmt, ...) printf("WARN: " fmt "\n", __VA_ARGS__)
+#define VDPWarnf(fmt, ...) printf("WARN: " fmt "\n", ##__VA_ARGS__)
 #else
 #define VDPWarnf(...)
 #endif
 
 #ifdef VDPDEBUG
-#define VDPDebugf(fmt, ...) printf("DEBUG: " fmt "\n", __VA_ARGS__)
+#define VDPDebugf(fmt, ...) printf("DEBUG: " fmt "\n", ##__VA_ARGS__)
 #else
 #define VDPDebugf(...)
 #endif
 
 #ifdef VDPTRACE
-#define VDPTracef(fmt, ...) printf("TRACE: " fmt "\n", __VA_ARGS__)
+#define VDPTracef(fmt, ...) printf("TRACE: " fmt "\n", ##__VA_ARGS__)
 #else
 #define VDPTracef(...)
 #endif

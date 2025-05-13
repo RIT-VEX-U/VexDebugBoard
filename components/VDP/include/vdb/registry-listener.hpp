@@ -34,7 +34,7 @@ public:
     const VDP::PacketValidity status = validate_packet(pac);
 
     if (status == VDP::PacketValidity::BadChecksum) {
-      VDPWarnf("Listener: Bad packet checksum. Skipping", "");
+      VDPWarnf("Listener: Bad packet checksum. Skipping");
       num_bad++;
       return;
     } else if (status == VDP::PacketValidity::TooSmall) {
@@ -44,7 +44,7 @@ public:
       dump_packet(pac);
       return;
     } else if (status != VDP::PacketValidity::Ok) {
-      VDPWarnf("Listener: Unknown validity of packet (BAD). Skipping", "");
+      VDPWarnf("Listener: Unknown validity of packet (BAD). Skipping");
       return;
     }
     // checks the packet function from the header
@@ -77,7 +77,7 @@ public:
         VDP::Channel chan{decoded.second, decoded.first};
         // checks if the new channel is outside of the vector of remote channels
         if (channels.size() < chan.id) {
-          VDPWarnf("Listener: Out of order broadcast. dropping", "");
+          VDPWarnf("Listener: Out of order broadcast. dropping");
           return;
         }
         // adds the channel to the vector of remote channels
