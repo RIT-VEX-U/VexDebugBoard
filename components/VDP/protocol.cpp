@@ -109,7 +109,9 @@ void PacketWriter::write_channel_acknowledge(const Channel &chan) {
   clear();
 
   const uint8_t header = make_header_byte(
-      PacketHeader{PacketType::Broadcast, PacketFunction::Acknowledge});
+      PacketHeader{
+        .type = PacketType::Broadcast,
+        .func = PacketFunction::Acknowledge});
 
   // Header
   write_number<uint8_t>(header);
@@ -156,6 +158,7 @@ void PacketWriter::write_data_message(const Channel &chan) {
  * @param chan the channel to request
  */
 void PacketWriter::write_response(std::deque<Channel> &channels) {
+  printf("writing channel response\n");
   clear();
   // makes a header byte with the type broadcast and the function Receive
   const uint8_t header = make_header_byte(
@@ -249,6 +252,31 @@ PartPtr make_decoder(PacketReader &pac) {
   }
   return nullptr;
 }
+//thank you jack
+void print_bits(uint8_t byte) {
+  for (int i = 7; i >= 0; i--) {
+    printf("%d", (byte >> i) & 1);
+  }
+  printf("\n");
+}
+
+static constexpr auto PACKET_TYPE_BIT_MASK = 0b10000000;
+static constexpr auto PACKET_FUNCTION_BIT_MASK = 0b01100000;
+
+uint8_t make_header_byte(PacketHeader head) {
+  return (uint8_t)head.type | (uint8_t)head.func;
+}
+
+PacketHeader decode_header_byte(uint8_t hb) {
+  const PacketType pt = (PacketType)(hb & PACKET_TYPE_BIT_MASK);
+  printf("header type found: %0x\n", (uint8_t)(pt));
+  const PacketFunction func =
+      (PacketFunction)(hb & PACKET_FUNCTION_BIT_MASK);
+  printf("header function found: %0x\n", (uint8_t)(func));
+
+  return {pt, func};
+}
+
 std::pair<ChannelID, PartPtr> decode_broadcast(const Packet &packet) {
   VDPTracef("Decoding broadcast of size: %d", (int)packet.size());
   PacketReader reader(packet);

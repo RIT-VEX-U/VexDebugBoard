@@ -103,23 +103,6 @@ void String::write_message(PacketWriter &sofar) const {
 void String::read_data_from_message(PacketReader &reader) {
   value = reader.get_string();
 }
-static constexpr auto PACKET_TYPE_BIT_LOCATION = 7;
-static constexpr auto PACKET_FUNCTION_BIT_LOCATION = 6;
-
-uint8_t make_header_byte(PacketHeader head) {
-
-  uint8_t b = 0;
-  b |= ((uint8_t)head.type) << PACKET_TYPE_BIT_LOCATION;
-  b |= ((uint8_t)head.func) << PACKET_FUNCTION_BIT_LOCATION;
-  return b;
-}
-PacketHeader decode_header_byte(uint8_t hb) {
-  const PacketType pt = (PacketType)((hb >> PACKET_TYPE_BIT_LOCATION) & 1);
-  const PacketFunction func =
-      (PacketFunction)((hb >> PACKET_FUNCTION_BIT_LOCATION) & 1);
-
-  return {pt, func};
-}
 
 Float::Float(std::string name, NumT::FetchFunc func) : NumT(name, func) {}
 Double::Double(std::string name, NumT::FetchFunc func) : NumT(name, func) {}

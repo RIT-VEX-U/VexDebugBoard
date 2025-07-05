@@ -32,11 +32,9 @@ extern "C" void app_main(void) {
   ESP_LOGI(TAG, "Initializing GPIO...");
   status_led_init(GPIO_NUM_4);
 
-  // ESP_LOGI(TAG, "Initializing WiFi AP...");
   // init_wifi_ap();
 
-  ESP_LOGI(TAG, "Initializing WiFi STA...");
-  init_wifi_sta();
+  init_wifi_sta("Archer WiFi", "hat775kim2955town", true);
   void foxglove_init_ws(void *arg_server);
 
   ESP_LOGI(TAG, "Initializing MDNS...");
@@ -54,13 +52,16 @@ extern "C" void app_main(void) {
                 BRAIN_BAUD_RATE};
   VDP::RegistryListener<std::mutex> reg{&dev};
 
-  std::function<void(std::string)> receive_callback =
-      [&reg](std::string json_string) {
-        ReceiveVisitor RV(json_string, reg);
-        RV.set_data();
-        RV.send_to_reg();
-      };
-
+  //callback for when we get data from the websocket to send to the brain
+  std::function<void(std::string)> receive_callback =[&reg](std::string json_string) {
+    ReceiveVisitor RV(json_string, reg);
+    printf("setting the data from the websocket...\n");
+    RV.set_data();
+    printf("sending the data from the websocket to the register...\n");
+    RV.send_to_reg();
+  };
+  
+  //sends the advertisement message and returns the message sent
   std::function<std::string()> get_advertisement_message = []() {
     return send_advertisement_msg(activeChannels);
   };
@@ -78,6 +79,7 @@ extern "C" void app_main(void) {
   bool data_mode = false;
   // what the webserver does when it recieves a new channel from the brain
   reg.install_broadcast_callback([&data_mode](VDP::Channel new_chan) {
+    //if we are in data mode
     if (data_mode) {
       // clear old channels
       data_mode = false;
@@ -97,6 +99,7 @@ extern "C" void app_main(void) {
     if (e != ESP_OK) {
       ESP_LOGW(TAG, "couldnt send to websocket");
     }
+    //if we aren't in data mode, send an advertisement and switch to data mode
     if (!data_mode) {
       data_mode = true;
       std::string advertisementStr = send_advertisement_msg(activeChannels);

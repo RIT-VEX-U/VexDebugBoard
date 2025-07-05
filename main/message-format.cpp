@@ -15,8 +15,9 @@ send_advertisement_msg(const std::vector<VDP::Channel> &activeChannels) {
     cJSON *subObject = visitors[visitors.size() - 1]->current_node();
     cJSON *newObject = cJSON_CreateObject();
 
-    cJSON_AddItemReferenceToObject(newObject, "schema", subObject);
     cJSON_AddNumberToObject(newObject, "channel_id", channel.getID());
+    cJSON_AddItemReferenceToObject(newObject, "schema", subObject);
+    
 
     cJSON_AddItemToArray(channelArray, newObject);
   }
@@ -37,12 +38,13 @@ std::string send_data_msg(const VDP::Channel &channel) {
   cJSON *root = cJSON_CreateObject();
   DataJSONVisitor visitor;
   channel.data->Visit(&visitor);
-  cJSON_AddNumberToObject(root, "rec_time", esp_timer_get_time());
-  cJSON_AddNumberToObject(root, "channel_id", channel.getID());
   cJSON_AddStringToObject(root, "type", "data");
-  cJSON_AddItemReferenceToObject(root, "motor",
-                                 visitor.node_stack[visitor.node_stack.size()]);
-
+  cJSON_AddNumberToObject(root, "channel_id", channel.getID());
+  cJSON_AddNumberToObject(root, "rec_time", esp_timer_get_time());
+  
+  cJSON_AddItemReferenceToObject(root, "data", visitor.node_stack[visitor.node_stack.size() - 1]);
+  // printf("data in send message - 1: %s", cJSON_Print(visitor.node_stack[visitor.node_stack.size() - 1]));
+  // printf("data in send message: %s", cJSON_Print(visitor.node_stack[visitor.node_stack.size()]));
   const char *json_str = cJSON_Print(root);
   std::string str(json_str);
   cJSON_free((void *)json_str);

@@ -20,6 +20,7 @@ public:
   RegistryListener(AbstractDevice *device) : device(device) {
     device->register_receive_callback([&](const Packet &p) {
       printf("Listener: GOT PACKET\n");
+      dump_packet(p);
       take_packet(p);
     });
   };
@@ -49,10 +50,12 @@ public:
     }
     // checks the packet function from the header
     const VDP::PacketHeader header = VDP::decode_header_byte(pac[0]);
+    printf("Packet Header Func: %x, Packet Header Type: %x\n", (int)header.func, (int)header.type);
     if (header.func == VDP::PacketFunction::Send) {
       VDPTracef("Listener: PacketFunction Send");
 
       if (header.type == VDP::PacketType::Data) {
+        printf("got data packet\n");
         // if the packet is a data, get the data from the packet
         VDPTracef("Listener: PacketType Data");
         // get the channel id from the second byte of the packet
@@ -70,6 +73,7 @@ public:
         // runs the channel's on data callback
         on_data(Channel{part, id});
       } else if (header.type == VDP::PacketType::Broadcast) {
+        printf("got broadcast packet\n");
         // if the packet is a broadcast, decode the packet
         VDPTracef("Listener: PacketType Broadcast", "");
         auto decoded = VDP::decode_broadcast(pac);
@@ -93,18 +97,26 @@ public:
         writer.write_channel_acknowledge(chan);
         device->send_packet(writer.get_packet());
         printf("Listener: sent channel ack\n");
+        dump_packet(scratch);
       }
     } else if (header.func == VDP::PacketFunction::Request) {
+      printf("got request packet\n");
       // if the packet is a data, get the data from the packet
       VDPTracef("Listener: PacketType Request");
       // creates a PacketReader starting after the channel id location
-      Packet scratch;
-      PacketWriter writer{scratch};
-      receive_queue_mutex.lock();
-      writer.write_response(channel_receive_queue);
-      receive_queue_mutex.unlock();
-      device->send_packet(writer.get_packet());
-      printf("Listener: sent available data ack\n");
+      if(channel_response_queue.size() > 0){
+        Packet scratch;
+        PacketWriter writer{scratch};
+        response_queue_mutex.lock();
+        writer.write_response(channel_response_queue);
+        response_queue_mutex.unlock();
+        device->send_packet(writer.get_packet());
+        printf("Listener: sent available data\n");
+      }
+      else{
+        printf("no data available for response\n");
+      }
+      
     }
   };
 
@@ -123,9 +135,11 @@ public:
       printf("cannot respond to channel: %d, channel does not exist\n", id);
       return false;
     }
-    receive_queue_mutex.lock();
-    channel_receive_queue.push_front(channels[id]);
-    receive_queue_mutex.unlock();
+    response_queue_mutex.lock();
+    printf("adding data to channel response queue\n");
+    channel_response_queue.push_front(channels[id]);
+    response_queue_mutex.unlock();
+    printf("channel response queue now has %d responses\n", channel_response_queue.size());
     return true;
   };
 
@@ -208,9 +222,9 @@ private:
 
   // The channels we know about from the other side
   // (them -> us)
-  std::deque<Channel> channel_receive_queue;
+  std::deque<Channel> channel_response_queue;
 
-  MutexType receive_queue_mutex;
+  MutexType response_queue_mutex;
 
   CallbackFn on_broadcast = [&](VDP::Channel chan) {
     std::string schema_str = chan.data->pretty_print();

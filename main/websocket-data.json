@@ -34,3 +34,15 @@
         "Voltage(V)": 2.3
     }
 }
+
+{
+    "type": "data",
+    "channel_id": 0,
+    "name": "Drive PID",
+    "data": {
+        "P": 0.5,
+        "I": 0.002,
+        "D": 0.25,
+        "Setpoint": 24,
+    }
+}

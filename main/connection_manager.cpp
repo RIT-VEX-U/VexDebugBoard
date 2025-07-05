@@ -54,10 +54,17 @@ static void on_wifi_event(void *arg, esp_event_base_t event_base,
   }
 }
 
-uint8_t network_ssid[32] = NETWORK_NAME;
-uint8_t network_pass[32] = NETWORK_PASS;
+// uint8_t network_ssid[32] = NETWORK_NAME;
+// uint8_t network_pass[32] = NETWORK_PASS;
 
-void init_wifi_ap() {
+void init_wifi_ap(std::string wifi_name, std::string wifi_pass) {
+  ESP_LOGI(TAG, "Initializing WiFi AP...");
+  uint8_t network_ssid[32];
+  uint8_t network_pass[32];
+  memcpy(network_ssid, wifi_name.c_str(), 32);
+  memcpy(network_pass, wifi_pass.c_str(), 32);
+  
+
   ESP_ERROR_CHECK(esp_netif_init());
   ESP_ERROR_CHECK(esp_event_loop_create_default());
   esp_netif_create_default_wifi_ap();
@@ -70,28 +77,39 @@ void init_wifi_ap() {
 
   // wifi_config_t wifi_config = WIFI_INIT_CONFIG_DEFAULT();
   wifi_config_t wifi_config = {};
-
+  ESP_LOGI(TAG, "Setting AP SSID");
   memcpy(wifi_config.ap.ssid, network_ssid, 32);
   wifi_config.ap.ssid_len = strlen((const char *)network_ssid);
-
+  ESP_LOGI(TAG, "Setting AP password");
   memcpy(wifi_config.ap.password, network_pass, 32);
-  // wifi_config.ap.authmode = WIFI_AUTH_WPA_WPA2_PSK;
-  wifi_config.ap.authmode = WIFI_AUTH_OPEN;
-
+  if(wifi_pass == ""){
+    wifi_config.ap.authmode = WIFI_AUTH_OPEN;
+  }
+  else{
+    wifi_config.ap.authmode = WIFI_AUTH_WPA_WPA2_PSK;
+  }
+  
   wifi_config.ap.channel = 0;
   wifi_config.ap.max_connection = 10;
 
   wifi_config.ap.pmf_cfg.required = true;
 
-  ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-  ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
+  ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
+  ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
   ESP_ERROR_CHECK(esp_wifi_start());
+  ESP_LOGI(TAG, "AP SSID Set to: %s, AP password set to: %s", wifi_name.c_str(), wifi_pass.c_str());
 }
 
-uint8_t sta_ssid[32] = EXAMPLE_ESP_WIFI_SSID;
-uint8_t sta_pass[32] = EXAMPLE_ESP_WIFI_PASS;
+// uint8_t sta_ssid[32] = EXAMPLE_ESP_WIFI_SSID;
+// uint8_t sta_pass[32] = EXAMPLE_ESP_WIFI_PASS;
 
-void init_wifi_sta(void) {
+void init_wifi_sta(std::string wifi_name, std::string wifi_pass, bool fallback_on_ap) {
+  ESP_LOGI(TAG, "Initializing WiFi STA...");
+
+  uint8_t sta_ssid[32];
+  uint8_t sta_pass[32];
+  memcpy(sta_ssid, wifi_name.c_str(), 32);
+  memcpy(sta_pass, wifi_pass.c_str(), 32);
   s_wifi_event_group = xEventGroupCreate();
 
   ESP_ERROR_CHECK(esp_netif_init());
@@ -108,11 +126,18 @@ void init_wifi_sta(void) {
       WIFI_EVENT, ESP_EVENT_ANY_ID, &on_wifi_event, NULL, &instance_any_id));
   ESP_ERROR_CHECK(esp_event_handler_instance_register(
       IP_EVENT, IP_EVENT_STA_GOT_IP, &on_wifi_event, NULL, &instance_got_ip));
+      
 
   wifi_config_t wifi_config = {};
   memcpy(wifi_config.sta.ssid, sta_ssid, 32);
   memcpy(wifi_config.sta.password, sta_pass, 32);
-  wifi_config.sta.threshold.authmode = WIFI_AUTH_OPEN;
+  if(wifi_pass == ""){
+    wifi_config.sta.threshold.authmode = WIFI_AUTH_OPEN;
+  }
+  else{
+    
+    wifi_config.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
+  }
   wifi_config.sta.sae_pwe_h2e = ESP_WIFI_SAE_MODE;
   // wifi_config.sta.sae_h2e_identifier = EXAMPLE_H2E_IDENTIFIER;
 
@@ -151,11 +176,14 @@ void init_wifi_sta(void) {
   /* xEventGroupWaitBits() returns the bits before the call returned, hence we
    * can test which event actually happened. */
   if (bits & WIFI_CONNECTED_BIT) {
-    ESP_LOGI(TAG, "connected to ap SSID:%s password:%s", EXAMPLE_ESP_WIFI_SSID,
-             EXAMPLE_ESP_WIFI_PASS);
+    ESP_LOGI(TAG, "connected to ap SSID:%s password:%s", wifi_name.c_str(), wifi_pass.c_str());
   } else if (bits & WIFI_FAIL_BIT) {
-    ESP_LOGI(TAG, "Failed to connect to SSID:%s, password:%s",
-             EXAMPLE_ESP_WIFI_SSID, EXAMPLE_ESP_WIFI_PASS);
+    ESP_LOGI(TAG, "Failed to connect to SSID:%s, password:%s", wifi_name.c_str(), wifi_pass.c_str());
+    if(fallback_on_ap){
+      ESP_LOGI(TAG, "Falling back on AP Configuration with SSID: RIT-VDB");
+      ESP_ERROR_CHECK(esp_event_loop_delete_default());
+      init_wifi_ap();
+    }
   } else {
     ESP_LOGE(TAG, "UNEXPECTED EVENT");
   }

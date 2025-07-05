@@ -69,14 +69,14 @@ void dump_packet(const Packet &pac);
 std::pair<ChannelID, PartPtr> decode_broadcast(const Packet &packet);
 
 enum class PacketType : uint8_t {
-  Broadcast = 0,
-  Data = 1,
+  Broadcast = 0b00000000,
+  Data = 0b10000000
 };
 enum class PacketFunction : uint8_t {
-  Send = 0b00,
-  Acknowledge = 0b01,
-  Response = 0b10,
-  Request = 0b11
+  Send = 0b00000000,
+  Acknowledge = 0b00100000,
+  Response = 0b01000000,
+  Request = 0b01100000
 };
 struct PacketHeader {
   PacketType type;
