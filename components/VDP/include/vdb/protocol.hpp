@@ -65,7 +65,8 @@ private:
   // std::vector
 };
 
-void dump_packet(const Packet &pac);
+void dump_packet_hex(const Packet &pac);
+void dump_packet_8bit(const Packet &pac);
 std::pair<ChannelID, PartPtr> decode_broadcast(const Packet &packet);
 
 enum class PacketType : uint8_t {
@@ -198,7 +199,7 @@ public:
    * writes a response packet to the packets
    * @param chan the Channel to write the data from
    */
-  void write_response(std::deque<Channel> &channels);
+  void write_response(std::deque<Channel> &response_queue);
 
   const Packet &get_packet() const;
 

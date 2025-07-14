@@ -43,8 +43,8 @@ std::string send_data_msg(const VDP::Channel &channel) {
   cJSON_AddNumberToObject(root, "rec_time", esp_timer_get_time());
   
   cJSON_AddItemReferenceToObject(root, "data", visitor.node_stack[visitor.node_stack.size() - 1]);
-  // printf("data in send message - 1: %s", cJSON_Print(visitor.node_stack[visitor.node_stack.size() - 1]));
-  // printf("data in send message: %s", cJSON_Print(visitor.node_stack[visitor.node_stack.size()]));
+  // printf("data in send message - 1: %s\n", cJSON_Print(visitor.node_stack[visitor.node_stack.size() - 1]));
+  // printf("full data message: %s\n", cJSON_Print(root));
   const char *json_str = cJSON_Print(root);
   std::string str(json_str);
   cJSON_free((void *)json_str);

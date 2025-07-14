@@ -133,7 +133,7 @@ void ReceiveVisitor::VisitRecord(VDP::Record *record) {
   for (int i = 0; i < record->get_fields().size(); i++) {
     printf("getting array item: %s, at index: %d, from json %s\n",record->get_fields().at(i).get()->get_name().c_str(), i, cJSON_Print(record_json));
     cJSON* buffer_json = cJSON_GetArrayItem(record_json, i);
-    printf("creating visitor for json: \n%s\n", cJSON_Print(buffer_json));
+    printf("creating visitor for json: \n%s\n", buffer_json->string);
     ReceiveVisitor new_RV(buffer_json, this->reg);
     printf("visiting record item: \n%s\n\n", record->get_fields().at(i).get()->get_name().c_str());
     record->get_fields().at(i)->Visit(&new_RV);
@@ -142,113 +142,134 @@ void ReceiveVisitor::VisitRecord(VDP::Record *record) {
 
 void ReceiveVisitor::VisitString(VDP::String *str) {
   if(std::string(input_json->valuestring) == "N/A"){
-    printf("found N/A value for part: %s, setting part to null\n", str->get_name().c_str());
+    printf("found N/A value for string part: %s, setting part to null\n", str->get_name().c_str());
     str->set_value("null");
   }
   else{
-    printf("found value: %s, for part: %s\n", input_json->valuestring, str->get_name().c_str());
+    printf("found value: %s, for string part: %s\n", input_json->valuestring, str->get_name().c_str());
     str->set_value(input_json->valuestring);
   }
 }
 void ReceiveVisitor::VisitFloat(VDP::Float *float_part) {
-  if(std::string(input_json->valuestring) == "N/A"){
-    printf("found N/A value for part: %s, setting part to null\n", float_part->get_name().c_str());
+  printf("visiting float\n");
+  if(input_json->type == cJSON_String){
+    if(std::string(input_json->valuestring) == "N/A"){
+    printf("found N/A value for float part: %s, setting part to null\n", float_part->get_name().c_str());
     float_part->set_value(NULL);
   }
+  }
   else{
-    printf("found value: %f, for part: %s\n", input_json->valuedouble, float_part->get_name().c_str());
-  float_part->set_value(input_json->valuedouble);
+    printf("found value: %f, for float part: %s\n", input_json->valuedouble, float_part->get_name().c_str());
+  float_part->set_value((float)input_json->valuedouble);
   }
 }
-void ReceiveVisitor::VisitDouble(VDP::Double *double_part) {
-  if(std::string(input_json->valuestring) == "N/A"){
-    printf("found N/A value for part: %s, setting part to null\n", double_part->get_name().c_str());
-    double_part->set_value(NULL);
+void ReceiveVisitor::VisitDouble(VDP::Double *double_part) {\
+  if(input_json->type == cJSON_String){
+    if(std::string(input_json->valuestring) == "N/A"){
+      printf("found N/A value for double part: %s, setting part to null\n", double_part->get_name().c_str());
+      double_part->set_value(NULL);
+    }
   }
   else{
-    printf("found value: %f, for part: %s\n", input_json->valuedouble, double_part->get_name().c_str());
+    printf("found value: %f, for double part: %s\n", input_json->valuedouble, double_part->get_name().c_str());
     double_part->set_value(input_json->valuedouble);
   }
 }
 void ReceiveVisitor::VisitInt64(VDP::Int64 *int64_part) {
-  if(std::string(input_json->valuestring) == "N/A"){
-    printf("found N/A value for part: %s, setting part to null\n", int64_part->get_name().c_str());
-    int64_part->set_value(NULL);
+  if(input_json->type == cJSON_String){
+    if(std::string(input_json->valuestring) == "N/A"){
+      printf("found N/A value for int64 part: %s, setting part to null\n", int64_part->get_name().c_str());
+      int64_part->set_value(NULL);
+    }
   }
   else{
-    printf("found value: %d, for part: %s\n", input_json->valueint, int64_part->get_name().c_str());
-    int64_part->set_value(input_json->valueint);
+    printf("found value: %d, for int64 part: %s\n", input_json->valueint, int64_part->get_name().c_str());
+    int64_part->set_value((int64_t)input_json->valueint);
   }
 }
 void ReceiveVisitor::VisitInt32(VDP::Int32 *int32_part) {
-  if(std::string(input_json->valuestring) == "N/A"){
-    printf("found N/A value for part: %s, setting part to null\n", int32_part->get_name().c_str());
-    int32_part->set_value(NULL);
+  if(input_json->type == cJSON_String){
+    if(std::string(input_json->valuestring) == "N/A"){
+      printf("found N/A value for int32 part: %s, setting part to null\n", int32_part->get_name().c_str());
+      int32_part->set_value(NULL);
+    }
   }
   else{
-    printf("found value: %d, for part: %s\n", input_json->valueint, int32_part->get_name().c_str());
-    int32_part->set_value(input_json->valueint);
+    printf("found value: %d, for int32 part: %s\n", input_json->valueint, int32_part->get_name().c_str());
+    int32_part->set_value((int32_t)input_json->valueint);
   }
 }
 void ReceiveVisitor::VisitInt16(VDP::Int16 *int16_part) {
-  if(std::string(input_json->valuestring) == "N/A"){
-    printf("found N/A value for part: %s, setting part to null\n", int16_part->get_name().c_str());
-    int16_part->set_value(NULL);
+  if(input_json->type == cJSON_String){
+    if(std::string(input_json->valuestring) == "N/A"){
+      printf("found N/A value for int16 part: %s, setting part to null\n", int16_part->get_name().c_str());
+      int16_part->set_value(NULL);
+    }
   }
   else{
-    printf("found value: %d, for part: %s\n", input_json->valueint, int16_part->get_name().c_str());
-    int16_part->set_value(input_json->valueint);
+    printf("found value: %d, for int16 part: %s\n", input_json->valueint, int16_part->get_name().c_str());
+    int16_part->set_value((int16_t)input_json->valueint);
   }
 }
 void ReceiveVisitor::VisitInt8(VDP::Int8 *int8_part) {
-  if(std::string(input_json->valuestring) == "N/A"){
-    printf("found N/A value for part: %s, setting part to null\n", int8_part->get_name().c_str());
-    int8_part->set_value(NULL);
+  if(input_json->type == cJSON_String){
+    if(std::string(input_json->valuestring) == "N/A"){
+      printf("found N/A value for int8 part: %s, setting part to null\n", int8_part->get_name().c_str());
+      int8_part->set_value(NULL);
+    }
   }
   else{
-    printf("found value: %d, for part: %s\n", input_json->valueint, int8_part->get_name().c_str());
-    int8_part->set_value(input_json->valueint);
+    printf("found value: %d, for int8 part: %s\n", input_json->valueint, int8_part->get_name().c_str());
+    int8_part->set_value((int8_t)input_json->valueint);
   }
 }
 
 void ReceiveVisitor::VisitUint64(VDP::Uint64 *Uint64_part) {
-  if(std::string(input_json->valuestring) == "N/A"){
-    printf("found N/A value for part: %s, setting part to null\n", Uint64_part->get_name().c_str());
-    Uint64_part->set_value(NULL);
+  if(input_json->type == cJSON_String){
+    if(std::string(input_json->valuestring) == "N/A"){
+      printf("found N/A value for uint64 part: %s, setting part to null\n", Uint64_part->get_name().c_str());
+      Uint64_part->set_value(NULL);
+    }
   }
   else{
-    printf("found value: %d, for part: %s\n", input_json->valueint, Uint64_part->get_name().c_str());
-    Uint64_part->set_value(input_json->valueint);
+    printf("found value: %d, for uint64 part: %s\n", input_json->valueint, Uint64_part->get_name().c_str());
+    Uint64_part->set_value((uint64_t)input_json->valueint);
   }
 }
 void ReceiveVisitor::VisitUint32(VDP::Uint32 *Uint32_part) {
-  if(std::string(input_json->valuestring) == "N/A"){
-    printf("found N/A value for part: %s, setting part to null\n", Uint32_part->get_name().c_str());
-    Uint32_part->set_value(NULL);
+  if(input_json->type == cJSON_String){
+    if(std::string(input_json->valuestring) == "N/A"){
+      printf("found N/A value for uint32 part: %s, setting part to null\n", Uint32_part->get_name().c_str());
+      Uint32_part->set_value(NULL);
+    }
   }
   else{
-    printf("found value: %d, for part: %s\n", input_json->valueint, Uint32_part->get_name().c_str());
-    Uint32_part->set_value(input_json->valueint);
+    printf("found value: %d, for uint32 part: %s\n", input_json->valueint, Uint32_part->get_name().c_str());
+    Uint32_part->set_value((uint32_t)input_json->valueint);
   }
 }
 void ReceiveVisitor::VisitUint16(VDP::Uint16 *Uint16_part) {
-  if(std::string(input_json->valuestring) == "N/A"){
-    printf("found N/A value for part: %s, setting part to null\n", Uint16_part->get_name().c_str());
-    Uint16_part->set_value(NULL);
+  if(input_json->type == cJSON_String){
+    if(std::string(input_json->valuestring) == "N/A"){
+      printf("found N/A value for uint16 part: %s, setting part to null\n", Uint16_part->get_name().c_str());
+      Uint16_part->set_value(NULL);
+    }
   }
   else{
-    printf("found value: %d, for part: %s\n", input_json->valueint, Uint16_part->get_name().c_str());
-    Uint16_part->set_value(input_json->valueint);
+    printf("found value: %d, for uint16 part: %s\n", input_json->valueint, Uint16_part->get_name().c_str());
+    Uint16_part->set_value((uint16_t)input_json->valueint);
   }
 }
 void ReceiveVisitor::VisitUint8(VDP::Uint8 *Uint8_part) {
-  if(std::string(input_json->valuestring) == "N/A"){
-    printf("found N/A value for part: %s, setting part to null\n", Uint8_part->get_name().c_str());
-    Uint8_part->set_value(NULL);
+  if(input_json->type == cJSON_String){
+    if(std::string(input_json->valuestring) == "N/A"){
+      printf("found N/A value for uint8 part: %s, setting part to null\n", Uint8_part->get_name().c_str());
+      Uint8_part->set_value(NULL);
+    }
   }
   else{
-    printf("found value: %d, for part: %s\n", input_json->valueint, Uint8_part->get_name().c_str());
-    Uint8_part->set_value(input_json->valueint);
+    printf("found value: %d, for uint8 part: %s\n", input_json->valueint, Uint8_part->get_name().c_str());
+    Uint8_part->set_value((uint8_t)input_json->valueint);
   }
 }
 
@@ -271,7 +292,7 @@ void ReceiveVisitor::set_data() {
     printf("got type data from websocket\n");
   } else {
     type = VDP::PacketType::Broadcast;
-    printf("got type bfrom websocket\n");
+    printf("got type broadcast from websocket\n");
   }
 
   cJSON *data_json = cJSON_GetObjectItem(input_json, "data");
@@ -285,11 +306,11 @@ void ReceiveVisitor::set_data() {
   printf("adding to list of data\n");
   data_parts.push_back(reg.get_remote_schema(id));
   printf("found data at id: %d\n", id);
-  // for (int i = 0; i < cJSON_GetArraySize(data_json); i++) {
-  //   reg.get_remote_schema(id)->Visit(&RV);
-  //   data_parts.push_back(reg.get_remote_schema(id));
-  //   printf("found data at id: %d\n", id);
-  // }
+  for (int i = 0; i < cJSON_GetArraySize(data_json); i++) {
+    reg.get_remote_schema(id)->Visit(&RV);
+    data_parts.push_back(reg.get_remote_schema(id));
+    printf("found data at id: %d\n", id);
+  }
   data = (std::shared_ptr<VDP::Record>)new VDP::Record("data", data_parts);
 }
 

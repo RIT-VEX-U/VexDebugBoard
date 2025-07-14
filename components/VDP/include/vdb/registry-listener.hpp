@@ -20,7 +20,6 @@ public:
   RegistryListener(AbstractDevice *device) : device(device) {
     device->register_receive_callback([&](const Packet &p) {
       printf("Listener: GOT PACKET\n");
-      dump_packet(p);
       take_packet(p);
     });
   };
@@ -42,7 +41,6 @@ public:
       num_small++;
       VDPWarnf("Listener: Packet too small to be valid (%d bytes). Skipping",
                (int)pac.size());
-      dump_packet(pac);
       return;
     } else if (status != VDP::PacketValidity::Ok) {
       VDPWarnf("Listener: Unknown validity of packet (BAD). Skipping");
@@ -97,7 +95,6 @@ public:
         writer.write_channel_acknowledge(chan);
         device->send_packet(writer.get_packet());
         printf("Listener: sent channel ack\n");
-        dump_packet(scratch);
       }
     } else if (header.func == VDP::PacketFunction::Request) {
       printf("got request packet\n");
@@ -130,16 +127,17 @@ public:
       printf("packet type is not data, not usable data\n");
       return false;
     }
-    channels[id].data = data;
+    VDP::Channel channel_response = channels[id];
+    channel_response.data = data;
     if (channels.size() < id) {
       printf("cannot respond to channel: %d, channel does not exist\n", id);
       return false;
     }
     response_queue_mutex.lock();
     printf("adding data to channel response queue\n");
-    channel_response_queue.push_front(channels[id]);
-    response_queue_mutex.unlock();
+    channel_response_queue.push_back(channels[id]);
     printf("channel response queue now has %d responses\n", channel_response_queue.size());
+    response_queue_mutex.unlock();
     return true;
   };
 

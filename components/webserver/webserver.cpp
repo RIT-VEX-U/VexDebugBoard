@@ -111,7 +111,6 @@ esp_err_t ws_handler(httpd_req_t *req) {
       free(buf);
       return ret;
     }
-    printf("received data from websocket...\n");
     printf("data received from websocket: \n\n\n%s\n\n\n", (char*)ws_pkt.payload);
     funcs->rec_cb((char *)ws_pkt.payload);
 

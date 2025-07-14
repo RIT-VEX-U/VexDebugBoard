@@ -11,7 +11,7 @@
 #include <vector>
 
 namespace VDP {
-void dump_packet(const Packet &pac) {
+void dump_packet_hex(const Packet &pac) {
   int i = 0;
   for (const uint8_t d : pac) {
     if (i % 16 == 0 && i != 0) {
@@ -20,6 +20,13 @@ void dump_packet(const Packet &pac) {
     printf("%02x ", (int)d);
     i++;
   }
+  printf("\n");
+}
+
+void dump_packet_8bit(const Packet &pac) {
+  for (uint8_t val : pac) {
+        printf("%d ", (int)val);
+    }
   printf("\n");
 }
 
@@ -154,28 +161,45 @@ void PacketWriter::write_data_message(const Channel &chan) {
 }
 
 /**
- * writes a receive packet to the packets
- * @param chan the channel to request
+ * writes a response packet to the brain
+ * @param response_queue the queue of channels to respond with
  */
-void PacketWriter::write_response(std::deque<Channel> &channels) {
-  printf("writing channel response\n");
+void PacketWriter::write_response(std::deque<Channel> &response_queue) {
+  printf("writing channel response for %s\n", response_queue.front().data->pretty_print_data().c_str());
   clear();
   // makes a header byte with the type broadcast and the function Receive
   const uint8_t header = make_header_byte(
       PacketHeader{PacketType::Data, PacketFunction::Response});
 
-  // writes the header byte and number of channels to send to the packet
+  // writes the header byte and number of responses in the queue
   write_number<uint8_t>(header);
-
-  write_number<size_t>(channels.size());
-  write_number<uint8_t>(header);
-  write_number<ChannelID>(channels[0].getID());
-  channels[0].data->write_message(*this);
-  channels.pop_front();
+  printf("packet with header: \n");
+  dump_packet_8bit(sofar);
+  write_number<uint8_t>(response_queue.size());
+  printf("packet with queue size (should be %d): \n", response_queue.size());
+  dump_packet_8bit(sofar);
+  //writes the channel id for the channel we are responding to
+  write_number<ChannelID>(response_queue.front().getID());
+  printf("packet with channel id: \n");
+  dump_packet_8bit(sofar);
+  int message_loc = sofar.size();
+  //writes the data for the response
+  response_queue.front().data->write_message(*this);
+  printf("packet with message: \n");
+  
+  dump_packet_8bit(sofar);
+  double out;
+  memcpy(&out, sofar.data() + message_loc, sizeof(out));
+  printf("message loc: %d, float in message: %f\n", message_loc, out);
+  //removes the response from the queue
+  response_queue.pop_front();
+  
 
   // creates and writes the Checksum to the packet
   uint32_t crc = CRC32::calculate(sofar.data(), sofar.size());
   write_number<uint32_t>(crc);
+  printf("packet with checksum: \n");
+  dump_packet_8bit(sofar);
 }
 
 std::string to_string(Type t) {
