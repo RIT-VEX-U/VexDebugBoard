@@ -48,12 +48,10 @@ public:
     }
     // checks the packet function from the header
     const VDP::PacketHeader header = VDP::decode_header_byte(pac[0]);
-    printf("Packet Header Func: %x, Packet Header Type: %x\n", (int)header.func, (int)header.type);
     if (header.func == VDP::PacketFunction::Send) {
       VDPTracef("Listener: PacketFunction Send");
 
       if (header.type == VDP::PacketType::Data) {
-        printf("got data packet\n");
         // if the packet is a data, get the data from the packet
         VDPTracef("Listener: PacketType Data");
         // get the channel id from the second byte of the packet
