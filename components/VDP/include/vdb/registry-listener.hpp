@@ -134,9 +134,7 @@ public:
       return false;
     }
     response_queue_mutex.lock();
-    printf("adding data to channel response queue\n");
-    channel_response_queue.push_back(channels[id]);
-    printf("channel response queue now has %d responses\n", channel_response_queue.size());
+    channel_response_queue.push_back(channel_response);
     response_queue_mutex.unlock();
     return true;
   };
