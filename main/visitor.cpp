@@ -20,6 +20,7 @@ void DataJSONVisitor::VisitRecord(VDP::Record *record) {
   std::string name = record->get_name();
   cJSON_AddItemToObject(oldroot, name.c_str(), newroot);
 }
+
 void DataJSONVisitor::VisitString(VDP::String *str) {
   std::string name = str->get_name();
   std::string value = str->get_value();
@@ -106,17 +107,17 @@ std::string ChannelVisitor::get_string() {
   return str;
 }
 
-ResponseVisitor::ResponseVisitor(std::string json_str,
+ResponseJSONVisitor::ResponseJSONVisitor(std::string json_str,
                                VDP::RegistryListener<std::mutex> &reg)
     : reg(reg) {
   input_json = cJSON_Parse(json_str.c_str());
 }
 
-ResponseVisitor::ResponseVisitor(const cJSON *input_json,
+ResponseJSONVisitor::ResponseJSONVisitor(const cJSON *input_json,
                                VDP::RegistryListener<std::mutex> &reg)
     : input_json(input_json), reg(reg) {}
 
-void ResponseVisitor::VisitRecord(VDP::Record *record) {
+void ResponseJSONVisitor::VisitRecord(VDP::Record *record) {
   std::vector<VDP::PartPtr> record_parts;
   const cJSON *record_json;
   if(std::string(input_json->string) == record->get_name()){
@@ -128,12 +129,12 @@ void ResponseVisitor::VisitRecord(VDP::Record *record) {
   
   for (int i = 0; i < record->get_fields().size(); i++) {
     cJSON* buffer_json = cJSON_GetArrayItem(record_json, i);
-    ResponseVisitor new_RV(buffer_json, this->reg);
+    ResponseJSONVisitor new_RV(buffer_json, this->reg);
     record->get_fields().at(i)->Visit(&new_RV);
   }
 }
 
-void ResponseVisitor::VisitString(VDP::String *str) {
+void ResponseJSONVisitor::VisitString(VDP::String *str) {
   if(std::string(input_json->valuestring) == "N/A"){
     str->set_value("null");
   }
@@ -141,60 +142,60 @@ void ResponseVisitor::VisitString(VDP::String *str) {
     str->set_value(input_json->valuestring);
   }
 }
-void ResponseVisitor::VisitFloat(VDP::Float *float_part) {
+void ResponseJSONVisitor::VisitFloat(VDP::Float *float_part) {
   if(input_json->type == cJSON_String){
     if(std::string(input_json->valuestring) == "N/A"){
-    float_part->set_value(NULL);
+    float_part->set_value((float)NULL);
   }
   }
   else{
-  float_part->set_value((float)input_json->valuedouble);
+  float_part->set_value(input_json->valuedouble);
   }
 }
-void ResponseVisitor::VisitDouble(VDP::Double *double_part) {\
+void ResponseJSONVisitor::VisitDouble(VDP::Double *double_part) {\
   if(input_json->type == cJSON_String){
     if(std::string(input_json->valuestring) == "N/A"){
-      double_part->set_value(NULL);
+      double_part->set_value((double)NULL);
     }
   }
   else{
     double_part->set_value(input_json->valuedouble);
   }
 }
-void ResponseVisitor::VisitInt64(VDP::Int64 *int64_part) {
+void ResponseJSONVisitor::VisitInt64(VDP::Int64 *int64_part) {
   if(input_json->type == cJSON_String){
     if(std::string(input_json->valuestring) == "N/A"){
-      int64_part->set_value(NULL);
+      int64_part->set_value((int64_t)NULL);
     }
   }
   else{
     int64_part->set_value((int64_t)input_json->valueint);
   }
 }
-void ResponseVisitor::VisitInt32(VDP::Int32 *int32_part) {
+void ResponseJSONVisitor::VisitInt32(VDP::Int32 *int32_part) {
   if(input_json->type == cJSON_String){
     if(std::string(input_json->valuestring) == "N/A"){
-      int32_part->set_value(NULL);
+      int32_part->set_value((int32_t)NULL);
     }
   }
   else{
     int32_part->set_value((int32_t)input_json->valueint);
   }
 }
-void ResponseVisitor::VisitInt16(VDP::Int16 *int16_part) {
+void ResponseJSONVisitor::VisitInt16(VDP::Int16 *int16_part) {
   if(input_json->type == cJSON_String){
     if(std::string(input_json->valuestring) == "N/A"){
-      int16_part->set_value(NULL);
+      int16_part->set_value((int16_t)NULL);
     }
   }
   else{
     int16_part->set_value((int16_t)input_json->valueint);
   }
 }
-void ResponseVisitor::VisitInt8(VDP::Int8 *int8_part) {
+void ResponseJSONVisitor::VisitInt8(VDP::Int8 *int8_part) {
   if(input_json->type == cJSON_String){
     if(std::string(input_json->valuestring) == "N/A"){
-      int8_part->set_value(NULL);
+      int8_part->set_value((int8_t)NULL);
     }
   }
   else{
@@ -202,40 +203,40 @@ void ResponseVisitor::VisitInt8(VDP::Int8 *int8_part) {
   }
 }
 
-void ResponseVisitor::VisitUint64(VDP::Uint64 *Uint64_part) {
+void ResponseJSONVisitor::VisitUint64(VDP::Uint64 *Uint64_part) {
   if(input_json->type == cJSON_String){
     if(std::string(input_json->valuestring) == "N/A"){
-      Uint64_part->set_value(NULL);
+      Uint64_part->set_value((uint64_t)NULL);
     }
   }
   else{
     Uint64_part->set_value((uint64_t)input_json->valueint);
   }
 }
-void ResponseVisitor::VisitUint32(VDP::Uint32 *Uint32_part) {
+void ResponseJSONVisitor::VisitUint32(VDP::Uint32 *Uint32_part) {
   if(input_json->type == cJSON_String){
     if(std::string(input_json->valuestring) == "N/A"){
-      Uint32_part->set_value(NULL);
+      Uint32_part->set_value((uint32_t)NULL);
     }
   }
   else{
     Uint32_part->set_value((uint32_t)input_json->valueint);
   }
 }
-void ResponseVisitor::VisitUint16(VDP::Uint16 *Uint16_part) {
+void ResponseJSONVisitor::VisitUint16(VDP::Uint16 *Uint16_part) {
   if(input_json->type == cJSON_String){
     if(std::string(input_json->valuestring) == "N/A"){
-      Uint16_part->set_value(NULL);
+      Uint16_part->set_value((uint16_t)NULL);
     }
   }
   else{
     Uint16_part->set_value((uint16_t)input_json->valueint);
   }
 }
-void ResponseVisitor::VisitUint8(VDP::Uint8 *Uint8_part) {
+void ResponseJSONVisitor::VisitUint8(VDP::Uint8 *Uint8_part) {
   if(input_json->type == cJSON_String){
     if(std::string(input_json->valuestring) == "N/A"){
-      Uint8_part->set_value(NULL);
+      Uint8_part->set_value((uint8_t)NULL);
     }
   }
   else{
@@ -243,14 +244,14 @@ void ResponseVisitor::VisitUint8(VDP::Uint8 *Uint8_part) {
   }
 }
 
-std::string ResponseVisitor::get_string() {
+std::string ResponseJSONVisitor::get_string() {
   const char *json_str = cJSON_Print(input_json);
   std::string str{json_str};
   cJSON_free((void *)json_str);
   return str;
 }
 
-void ResponseVisitor::set_data() {
+void ResponseJSONVisitor::set_data() {
 
   id = cJSON_GetObjectItem(input_json, "channel_id")->valueint;
 
@@ -264,7 +265,7 @@ void ResponseVisitor::set_data() {
 
   cJSON *data_json = cJSON_GetObjectItem(input_json, "data");
 
-  ResponseVisitor RV(data_json, reg);
+  ResponseJSONVisitor RV(data_json, reg);
 
   reg.get_remote_schema(id)->Visit(&RV);
 
@@ -276,11 +277,11 @@ void ResponseVisitor::set_data() {
   data = (std::shared_ptr<VDP::Record>)new VDP::Record("data", data_parts);
 }
 
-VDP::ChannelID ResponseVisitor::get_id() {
+VDP::ChannelID ResponseJSONVisitor::get_id() {
   return cJSON_GetObjectItem(input_json, "channel_id")->valueint;
 }
 
-VDP::PacketType ResponseVisitor::get_type() {
+VDP::PacketType ResponseJSONVisitor::get_type() {
   std::string type = cJSON_GetObjectItem(input_json, "type")->valuestring;
   if (type == "data") {
     return VDP::PacketType::Data;
@@ -289,8 +290,8 @@ VDP::PacketType ResponseVisitor::get_type() {
   }
 }
 
-VDP::PartPtr ResponseVisitor::get_data() {
-  ResponseVisitor RV(input_json, reg);
+VDP::PartPtr ResponseJSONVisitor::get_data() {
+  ResponseJSONVisitor RV(input_json, reg);
 
   cJSON *data_json = cJSON_GetObjectItem(input_json, "data");
   for (int i = 0; i < cJSON_GetArraySize(data_json); i++) {
@@ -302,4 +303,4 @@ VDP::PartPtr ResponseVisitor::get_data() {
   return data_part;
 }
 
-void ResponseVisitor::send_to_reg() { reg.submit_response(type, id, data); }
+void ResponseJSONVisitor::send_to_reg() { reg.submit_response(type, id, data); }

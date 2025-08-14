@@ -1,5 +1,5 @@
 #pragma once
-#include "protocol.hpp"
+#include "vdb/protocol.hpp"
 #include <deque>
 
 namespace VDP {

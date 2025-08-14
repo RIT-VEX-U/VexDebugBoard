@@ -55,9 +55,9 @@ class Channel {
     friend class RegistryController;
     /**
      * Creates a channel used for sending data to the brain
-     * @param schema_data Part Pointer schematic of data to be sent to the brain
+     * @param data Part Pointer of data to be stored at the channel
      */
-    explicit Channel(PartPtr schema_data) : data(schema_data) {}
+    explicit Channel(PartPtr data) : data(data) {}
     PartPtr data;
     /*
      * @return The Channel ID from 0 - 256
@@ -67,10 +67,10 @@ class Channel {
   private:
     /**
      * Creates a channel used for sending data to the brain
-     * @param schema_data Part Pointer schematic of data to be sent to the brain
+     * @param data Part Pointer of data to be stored at the channel
      * @param channel_id The Channel ID to assign the channel from 0 - 256
      */
-    Channel(PartPtr schema_data, ChannelID channel_id) : data(schema_data), id(channel_id) {}
+    Channel(PartPtr data, ChannelID channel_id) : data(data), id(channel_id) {}
 
     ChannelID id = 0;
     Packet packet_scratch_space;
@@ -182,6 +182,8 @@ class Part {
     virtual void fetch() = 0;
 
     virtual void response();
+
+    virtual VDP::PartPtr clone() = 0;
     /**
      * sets the data the part contains to the data from a packet, meant to be overrided
      * @param reader the PacketReader to read data from
@@ -329,8 +331,8 @@ class PacketWriter {
      */
     void write_response(std::deque<Channel> &channels);
     /**
-     * writes a broadcast of a channel schematic to the packet
-     * @param chan the channel to request
+     * writes the data from a channel to the packet
+     * @param chan the Channel to write the data from
      */
     void write_data_message(const Channel &part);
     /**

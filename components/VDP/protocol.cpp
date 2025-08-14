@@ -403,4 +403,5 @@ std::pair<ChannelID, PartPtr> decode_broadcast(const Packet &packet) {
     // returns the pair of the channel id and the packet shematic
     return {id, schema};
 }
+
 } // namespace VDP

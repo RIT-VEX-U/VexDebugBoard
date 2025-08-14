@@ -54,7 +54,7 @@ extern "C" void app_main(void) {
 
   //callback for when we get data from the websocket to send to the brain
   std::function<void(std::string)> receive_callback =[&reg](std::string json_string) {
-    ResponseVisitor RV(json_string, reg);
+    ResponseJSONVisitor RV(json_string, reg);
     printf("setting the data from the websocket...\n");
     RV.set_data();
     printf("sending the data from the websocket to the register...\n");

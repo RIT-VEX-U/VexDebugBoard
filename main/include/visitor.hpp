@@ -47,10 +47,10 @@ public:
   cJSON *root;
   std::vector<cJSON *> node_stack;
 };
-class ResponseVisitor : public VDP::Visitor {
+class ResponseJSONVisitor : public VDP::Visitor {
 public:
-  ResponseVisitor(std::string json_str, VDP::RegistryListener<std::mutex> &reg);
-  ResponseVisitor(const cJSON *input_json, VDP::RegistryListener<std::mutex> &reg);
+  ResponseJSONVisitor(std::string json_str, VDP::RegistryListener<std::mutex> &reg);
+  ResponseJSONVisitor(const cJSON *input_json, VDP::RegistryListener<std::mutex> &reg);
 
   void VisitRecord(VDP::Record *record) override;
 
