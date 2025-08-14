@@ -34,11 +34,11 @@ extern "C" void app_main(void) {
 
   // init_wifi_ap();
 
-  init_wifi_sta("Archer WiFi", "hat775kim2955town", true);
+  init_wifi_sta("WiFi Name", "WiFi Password", true);
   void foxglove_init_ws(void *arg_server);
 
-  ESP_LOGI(TAG, "Initializing MDNS...");
-  init_mdns();
+  // ESP_LOGI(TAG, "Initializing MDNS...");
+  // init_mdns();
 
   ESP_LOGI(TAG, "Initializing Serial Connection...");
   constexpr int BRAIN_UART_TXD = 6;
