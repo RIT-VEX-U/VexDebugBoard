@@ -1,10 +1,11 @@
 #include "webserver.hpp"
 
+#include "vdb/protocol.hpp"
 #include <esp_http_server.h>
-
 #include <esp_log.h>
 #include <mdns.h>
 #include <stdio.h>
+#include <vector>
 
 #include "freertos/semphr.h"
 #include "rest.hpp"
@@ -66,13 +67,19 @@ static httpd_handle_t global_handle;
 static int global_fd = 0;
 
 esp_err_t ws_handler(httpd_req_t *req) {
+  ws_functions *funcs = (ws_functions *)req->user_ctx;
   if (req->method == HTTP_GET) {
     global_handle = req->handle;
     global_fd = httpd_req_to_sockfd(req);
 
     ESP_LOGI(TAG, "Handshake done, the new connection was opened");
+    std::string advertisementStr = (funcs->get_adv_msg)();
+    ESP_LOGI(TAG, "%s", advertisementStr.c_str());
+    esp_err_t edos = send_string_to_ws(advertisementStr);
+
     return ESP_OK;
   }
+
   httpd_ws_frame_t ws_pkt;
   uint8_t *buf = NULL;
   memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
@@ -99,6 +106,14 @@ esp_err_t ws_handler(httpd_req_t *req) {
       free(buf);
       return ret;
     }
+    if (ws_pkt.type != HTTPD_WS_TYPE_TEXT) {
+      ESP_LOGE(TAG, "websocket was not text, unable to use %d", ret);
+      free(buf);
+      return ret;
+    }
+    printf("data received from websocket: \n\n\n%s\n\n\n", (char*)ws_pkt.payload);
+    funcs->rec_cb((char *)ws_pkt.payload);
+
     ESP_LOGI(TAG, "Got packet with message: %s", ws_pkt.payload);
   }
   ESP_LOGI(TAG, "Packet type: %d", ws_pkt.type);
@@ -111,7 +126,7 @@ esp_err_t ws_handler(httpd_req_t *req) {
   free(buf);
   return ret;
 }
-static const httpd_uri_t ws = {
+static httpd_uri_t ws = {
     .uri = "/ws",
     .method = HTTP_GET,
     .handler = ws_handler,
@@ -132,7 +147,7 @@ static const httpd_uri_t ws = {
  * @pre mDNS is initialized
  * @param port port to run server on. For browsers to see it should be 80
  */
-httpd_handle_t webserver_start(uint16_t port) {
+httpd_handle_t webserver_start(uint16_t port, ws_functions *funcs) {
   /* Generate default configuration */
   httpd_config_t config = HTTPD_DEFAULT_CONFIG();
   config.server_port = port;
@@ -150,6 +165,7 @@ httpd_handle_t webserver_start(uint16_t port) {
     ESP_LOGE(TAG, "Failed to start HTTP server");
     return NULL;
   }
+  ws.user_ctx = (void *)funcs;
 
   ESP_ERROR_CHECK(httpd_register_uri_handler(server, &ws));
 
@@ -163,6 +179,15 @@ httpd_handle_t webserver_start(uint16_t port) {
 }
 
 esp_err_t send_string_to_ws(const std::string &str) {
+  if (global_fd == 0) {
+    ESP_LOGI(TAG, "Not sending to ws bc websocket unopened");
+    return ESP_OK;
+  }
+
+  return trigger_async_send(global_handle, global_fd, str);
+}
+
+esp_err_t get_string_from_ws(const std::string &str) {
   if (global_fd == 0) {
     ESP_LOGI(TAG, "Not sending to ws bc websocket unopened");
     return ESP_OK;

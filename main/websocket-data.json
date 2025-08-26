@@ -1,0 +1,48 @@
+{
+    "type": "advertise",
+    "channels": [
+        {
+            "channel_id": 0,
+            "schema": {
+                "name": "motornamedjoe",
+                "type": "record",
+                "fields": [
+                    {
+                        "Name": "Voltage(V)",
+                        "Type": "float"
+                    },
+                    {
+                        "Name": "Current(A)",
+                        "Type": "float"
+                    }
+                ]
+            }
+        },
+        {
+            "channel_id": 1,
+            "name": "template",
+            "type": "struct"
+        }
+    ]
+}
+{
+    "type": "data",
+    "channel_id": 0,
+    "name": "motor",
+    "data": {
+        "Current(A)": 0.2,
+        "Voltage(V)": 2.3
+    }
+}
+
+{
+    "type": "data",
+    "channel_id": 0,
+    "name": "Drive PID",
+    "data": {
+        "P": 0.5,
+        "I": 0.002,
+        "D": 0.25,
+        "Setpoint": 24,
+    }
+}
