@@ -1,5 +1,6 @@
 #include "visitor.hpp"
 #include "cJSON_Utils.h"
+#include <limits>
 
 DataJSONVisitor::DataJSONVisitor() {
   root = cJSON_CreateObject();
@@ -136,7 +137,7 @@ void ResponseJSONVisitor::VisitRecord(VDP::Record *record) {
 
 void ResponseJSONVisitor::VisitString(VDP::String *str) {
   if(std::string(input_json->valuestring) == "N/A"){
-    str->set_value("null");
+    str->set_value("N/A");
   }
   else{
     str->set_value(input_json->valuestring);
@@ -145,7 +146,7 @@ void ResponseJSONVisitor::VisitString(VDP::String *str) {
 void ResponseJSONVisitor::VisitFloat(VDP::Float *float_part) {
   if(input_json->type == cJSON_String){
     if(std::string(input_json->valuestring) == "N/A"){
-    float_part->set_value((float)NULL);
+    float_part->set_value(std::numeric_limits<float>().signaling_NaN());
   }
   }
   else{
@@ -155,7 +156,7 @@ void ResponseJSONVisitor::VisitFloat(VDP::Float *float_part) {
 void ResponseJSONVisitor::VisitDouble(VDP::Double *double_part) {\
   if(input_json->type == cJSON_String){
     if(std::string(input_json->valuestring) == "N/A"){
-      double_part->set_value((double)NULL);
+      double_part->set_value(std::numeric_limits<float>().signaling_NaN());
     }
   }
   else{
@@ -165,7 +166,7 @@ void ResponseJSONVisitor::VisitDouble(VDP::Double *double_part) {\
 void ResponseJSONVisitor::VisitInt64(VDP::Int64 *int64_part) {
   if(input_json->type == cJSON_String){
     if(std::string(input_json->valuestring) == "N/A"){
-      int64_part->set_value((int64_t)NULL);
+      int64_part->set_value(std::numeric_limits<int64_t>().min());
     }
   }
   else{
@@ -175,7 +176,7 @@ void ResponseJSONVisitor::VisitInt64(VDP::Int64 *int64_part) {
 void ResponseJSONVisitor::VisitInt32(VDP::Int32 *int32_part) {
   if(input_json->type == cJSON_String){
     if(std::string(input_json->valuestring) == "N/A"){
-      int32_part->set_value((int32_t)NULL);
+      int32_part->set_value(std::numeric_limits<int32_t>().min());
     }
   }
   else{
@@ -185,7 +186,7 @@ void ResponseJSONVisitor::VisitInt32(VDP::Int32 *int32_part) {
 void ResponseJSONVisitor::VisitInt16(VDP::Int16 *int16_part) {
   if(input_json->type == cJSON_String){
     if(std::string(input_json->valuestring) == "N/A"){
-      int16_part->set_value((int16_t)NULL);
+      int16_part->set_value(std::numeric_limits<int16_t>().min());
     }
   }
   else{
@@ -195,7 +196,7 @@ void ResponseJSONVisitor::VisitInt16(VDP::Int16 *int16_part) {
 void ResponseJSONVisitor::VisitInt8(VDP::Int8 *int8_part) {
   if(input_json->type == cJSON_String){
     if(std::string(input_json->valuestring) == "N/A"){
-      int8_part->set_value((int8_t)NULL);
+      int8_part->set_value(std::numeric_limits<int8_t>().min());
     }
   }
   else{
@@ -206,7 +207,7 @@ void ResponseJSONVisitor::VisitInt8(VDP::Int8 *int8_part) {
 void ResponseJSONVisitor::VisitUint64(VDP::Uint64 *Uint64_part) {
   if(input_json->type == cJSON_String){
     if(std::string(input_json->valuestring) == "N/A"){
-      Uint64_part->set_value((uint64_t)NULL);
+      Uint64_part->set_value(std::numeric_limits<uint64_t>().min());
     }
   }
   else{
@@ -216,7 +217,7 @@ void ResponseJSONVisitor::VisitUint64(VDP::Uint64 *Uint64_part) {
 void ResponseJSONVisitor::VisitUint32(VDP::Uint32 *Uint32_part) {
   if(input_json->type == cJSON_String){
     if(std::string(input_json->valuestring) == "N/A"){
-      Uint32_part->set_value((uint32_t)NULL);
+      Uint32_part->set_value(std::numeric_limits<uint32_t>().min());
     }
   }
   else{
@@ -226,7 +227,7 @@ void ResponseJSONVisitor::VisitUint32(VDP::Uint32 *Uint32_part) {
 void ResponseJSONVisitor::VisitUint16(VDP::Uint16 *Uint16_part) {
   if(input_json->type == cJSON_String){
     if(std::string(input_json->valuestring) == "N/A"){
-      Uint16_part->set_value((uint16_t)NULL);
+      Uint16_part->set_value(std::numeric_limits<uint16_t>().min());
     }
   }
   else{
@@ -236,7 +237,7 @@ void ResponseJSONVisitor::VisitUint16(VDP::Uint16 *Uint16_part) {
 void ResponseJSONVisitor::VisitUint8(VDP::Uint8 *Uint8_part) {
   if(input_json->type == cJSON_String){
     if(std::string(input_json->valuestring) == "N/A"){
-      Uint8_part->set_value((uint8_t)NULL);
+      Uint8_part->set_value(std::numeric_limits<uint8_t>().min());
     }
   }
   else{
