@@ -11,6 +11,7 @@ public:
 
   void VisitRecord(VDP::Record *record);
   void VisitString(VDP::String *str);
+  void VisitBoolean(VDP::Boolean *bool_part);
   void VisitAnyFloat(const std::string &name, double value, const VDP::Part *);
   void VisitAnyInt(const std::string &name, int64_t value, const VDP::Part *);
   void VisitAnyUint(const std::string &name, uint64_t value, const VDP::Part *);
@@ -36,6 +37,7 @@ public:
   void VisitRecord(VDP::Record *record);
 
   void VisitString(VDP::String *str);
+  void VisitBoolean(VDP::Boolean *bool_part);
   void VisitAnyFloat(const std::string &name, double value, const VDP::Part *);
   void VisitAnyInt(const std::string &name, int64_t value, const VDP::Part *);
   void VisitAnyUint(const std::string &name, uint64_t value, const VDP::Part *);
@@ -58,6 +60,7 @@ public:
 
   void VisitFloat(VDP::Float *float_part) override;
   void VisitDouble(VDP::Double *double_part) override;
+  void VisitBoolean(VDP::Boolean *bool_part) override;
 
   void VisitInt64(VDP::Int64 *int64_part) override;
   void VisitInt32(VDP::Int32 *int32_part) override;

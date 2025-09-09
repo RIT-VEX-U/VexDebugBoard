@@ -29,6 +29,15 @@ void DataJSONVisitor::VisitString(VDP::String *str) {
   cJSON *oldroot = current_node();
   cJSON_AddStringToObject(oldroot, name.c_str(), value.c_str());
 }
+
+void DataJSONVisitor::VisitBoolean(VDP::Boolean *bool_part) {
+  std::string name = bool_part->get_name();
+  bool value = bool_part->get_value();
+
+  cJSON *oldroot = current_node();
+  cJSON_AddBoolToObject(oldroot, name.c_str(), value);
+}
+
 void DataJSONVisitor::VisitAnyFloat(const std::string &name, double value,
                                     const VDP::Part *) {
   cJSON_AddNumberToObject(current_node(), name.c_str(), value);
@@ -81,6 +90,15 @@ void ChannelVisitor::VisitString(VDP::String *str) {
   cJSON_AddStringToObject(oldroot, "name", name.c_str());
   cJSON_AddStringToObject(oldroot, "type", "string");
 }
+
+void ChannelVisitor::VisitBoolean(VDP::Boolean *bool_part) {
+  std::string name = bool_part->get_name();
+
+  cJSON *oldroot = current_node();
+  cJSON_AddStringToObject(oldroot, "name", name.c_str());
+  cJSON_AddStringToObject(oldroot, "type", "bool");
+}
+
 void ChannelVisitor::VisitAnyFloat(const std::string &name, double value,
                                    const VDP::Part *) {
   cJSON_AddStringToObject(current_node(), "name", name.c_str());
@@ -146,7 +164,7 @@ void ResponseJSONVisitor::VisitString(VDP::String *str) {
 void ResponseJSONVisitor::VisitFloat(VDP::Float *float_part) {
   if(input_json->type == cJSON_String){
     if(std::string(input_json->valuestring) == "N/A"){
-    float_part->set_value(std::numeric_limits<float>().signaling_NaN());
+    float_part->set_value(std::numeric_limits<float>().min());
   }
   }
   else{
@@ -156,11 +174,21 @@ void ResponseJSONVisitor::VisitFloat(VDP::Float *float_part) {
 void ResponseJSONVisitor::VisitDouble(VDP::Double *double_part) {\
   if(input_json->type == cJSON_String){
     if(std::string(input_json->valuestring) == "N/A"){
-      double_part->set_value(std::numeric_limits<float>().signaling_NaN());
+      double_part->set_value(std::numeric_limits<float>().min());
     }
   }
   else{
     double_part->set_value(input_json->valuedouble);
+  }
+}
+void ResponseJSONVisitor::VisitBoolean(VDP::Boolean *bool_part) {\
+  if(input_json->type == cJSON_String){
+    if(std::string(input_json->valuestring) == "N/A"){
+      bool_part->set_value(2);
+    }
+  }
+  else{
+    bool_part->set_value(input_json->valuedouble);
   }
 }
 void ResponseJSONVisitor::VisitInt64(VDP::Int64 *int64_part) {

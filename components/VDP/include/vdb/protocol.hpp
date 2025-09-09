@@ -122,17 +122,17 @@ enum class Type : uint8_t {
 
     Double = 3,
     Float = 4,
+    Boolean = 5,
 
-    Uint8 = 5,
-    Uint16 = 6,
-    Uint32 = 7,
-    Uint64 = 8,
+    Uint8 = 6,
+    Uint16 = 7,
+    Uint32 = 8,
+    Uint64 = 9,
 
-    Int8 = 9,
-    Int16 = 10,
-    Int32 = 11,
-    Int64 = 12,
-
+    Int8 = 10,
+    Int16 = 11,
+    Int32 = 12,
+    Int64 = 13,
 };
 
 std::string to_string(Type t);
@@ -182,6 +182,11 @@ class Part {
     virtual void fetch() = 0;
 
     virtual void response();
+
+    template<typename T>
+      PartPtr to_PartPtr(){
+        return std::make_shared<T>(this);
+      };
 
     virtual VDP::PartPtr clone() = 0;
     /**
@@ -242,6 +247,10 @@ class PacketReader {
      */
     uint8_t get_byte();
     /**
+     * @return the current byte the reader is on represented as a boolean
+     */
+    bool get_bool();
+    /**
      * @return the type of the current byte the reader is on
      */
     Type get_type();
@@ -249,6 +258,8 @@ class PacketReader {
      * @return a string of bytes the reader is reading until the next 0 byte (end of the Packet)
      */
     std::string get_string();
+
+    
 
     /**
      * @return the value stored by a Number Part

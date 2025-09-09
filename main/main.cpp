@@ -34,7 +34,7 @@ extern "C" void app_main(void) {
 
   // init_wifi_ap();
 
-  init_wifi_sta("WiFi Name", "WiFi Password", true);
+  init_wifi_sta("RIT-WiFi", "", true);
   void foxglove_init_ws(void *arg_server);
 
   // ESP_LOGI(TAG, "Initializing MDNS...");

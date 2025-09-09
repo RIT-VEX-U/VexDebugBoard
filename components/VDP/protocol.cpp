@@ -52,6 +52,8 @@ std::string to_string(Type t) {
         return "float";
     case Type::Double:
         return "double";
+    case Type::Boolean:
+        return "bool";
 
     case Type::Uint8:
         return "uint8";
@@ -163,6 +165,14 @@ VDP::PacketValidity validate_packet(const VDP::Packet &packet) {
  */
 uint8_t PacketReader::get_byte() {
     const uint8_t b = pac[read_head];
+    read_head++;
+    return b;
+}
+/**
+ * @return the current byte the reader is on represented as a boolean
+ */
+bool PacketReader::get_bool() {
+    bool b = pac[read_head];
     read_head++;
     return b;
 }
@@ -351,7 +361,8 @@ PartPtr make_decoder(PacketReader &pac) {
         return PartPtr(new Float(name));
     case Type::Double:
         return PartPtr(new Double(name));
-
+    case Type::Boolean:
+        return PartPtr(new Boolean(name));
     case Type::Uint8:
         return PartPtr(new Uint8(name));
     case Type::Uint16:

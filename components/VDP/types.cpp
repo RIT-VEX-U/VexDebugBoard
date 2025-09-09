@@ -202,6 +202,75 @@ void String::write_schema(PacketWriter &sofar) const {
  */
 void String::write_message(PacketWriter &sofar) const { sofar.write_string(value); }
 
+/**
+ * creates a string type conveyed as a part with a name and a fetcher
+ * @param name name of the string to have
+ * @param fetcher the fetcher function to use when assigning it new data
+ */
+Boolean::Boolean(std::string field_name, std::function<bool()> fetcher)
+    : Part(std::move(field_name)), fetcher(std::move(fetcher)) {}
+/**
+ * used to assign the string new data, runs the fetch function
+ */
+void Boolean::fetch() { value = fetcher(); }
+/**
+ * function to run when receiving to this part
+ */
+void Boolean::response() {}
+/**
+ * sets the string part's value to the string given
+ * @param new_value the string to set the value to
+ */
+void Boolean::set_value(bool new_value) { value = std::move(new_value); }
+/**
+ * @return the currently stored string
+ */
+bool Boolean::get_value() { return value; }
+
+PartPtr Boolean::clone() {
+    std::shared_ptr<Boolean> cloned_bool = std::make_shared<Boolean>(this->name);
+    cloned_bool->set_value(this->value);
+    return cloned_bool;
+};
+/**
+ * sets the string part's value to the string read by a packet reader
+ * @param reader the part reader to get
+ */
+void Boolean::read_data_from_message(PacketReader &reader) { value = reader.get_byte(); }
+/**
+ * changes a stringstream to be formatted as
+ * name: string
+ * @param ss the stringstream to change
+ * @param indent the amount of indents to use
+ */
+void Boolean::pprint(std::stringstream &ss, size_t indent) const {
+    add_indents(ss, indent);
+    ss << name << ": bool";
+}
+/**
+ * changes a stringstream to be formatted as
+ * name: value
+ * @param ss the stringstream to change
+ * @param indent the amount of indents to use
+ */
+void Boolean::pprint_data(std::stringstream &ss, size_t indent) const {
+    add_indents(ss, indent);
+    ss << name << ":\t" << value;
+}
+/**
+ * writes the schematic for the string to a packet
+ * @param sofar the packet writer to write with
+ */
+void Boolean::write_schema(PacketWriter &sofar) const {
+    sofar.write_type(Type::Boolean); // Type
+    sofar.write_string(name);       // Name
+}
+/**
+ * writes the strings data to a packet
+ * @param sofar the packet writer to write with
+ */
+void Boolean::write_message(PacketWriter &sofar) const { sofar.write_byte(value); }
+
 Float::Float(std::string name, NumT::FetchFunc func) : NumT(name, func) {}
 Double::Double(std::string name, NumT::FetchFunc func) : NumT(name, func) {}
 Uint8::Uint8(std::string name, NumT::FetchFunc func) : NumT(name, func) {}
@@ -218,6 +287,7 @@ void String::Visit(Visitor *v) { v->VisitString(this); }
 
 void Float::Visit(Visitor *v) { v->VisitFloat(this); }
 void Double::Visit(Visitor *v) { v->VisitDouble(this); }
+void Boolean::Visit(Visitor *v) { v->VisitBoolean(this); }
 
 void Uint8::Visit(Visitor *v) { v->VisitUint8(this); }
 void Uint16::Visit(Visitor *v) { v->VisitUint16(this); }
