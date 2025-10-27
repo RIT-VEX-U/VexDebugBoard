@@ -120,19 +120,19 @@ enum class Type : uint8_t {
     String = 1,
     // Enum
 
-    Double = 3,
-    Float = 4,
-    Boolean = 5,
+    Double = 2,
+    Float = 3,
+    Boolean = 4,
 
-    Uint8 = 6,
-    Uint16 = 7,
-    Uint32 = 8,
-    Uint64 = 9,
+    Uint8 = 5,
+    Uint16 = 6,
+    Uint32 = 7,
+    Uint64 = 8,
 
-    Int8 = 10,
-    Int16 = 11,
-    Int32 = 12,
-    Int64 = 13,
+    Int8 = 9,
+    Int16 = 10,
+    Int32 = 11,
+    Int64 = 12,
 };
 
 std::string to_string(Type t);
