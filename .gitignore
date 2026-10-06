@@ -1,0 +1,8 @@
+.pio/
+compile_commands.json
+sdkconfig
+sdkconfig.*
+!sdkconfig.defaults
+!sdkconfig.defaults.*
+.vscode/*
+!.vscode/extensions.json

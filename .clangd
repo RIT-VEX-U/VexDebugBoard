@@ -1,0 +1,10 @@
+CompileFlags:
+  CompilationDatabase: .
+  # These GCC options are unsupported by clangd; firmware builds keep them.
+  Remove:
+    - -mlongcalls
+    - -fno-shrink-wrap
+    - -fstrict-volatile-bitfields
+    - -fno-tree-switch-conversion
+    - -fzero-init-padding-bits=*
+    - -fno-malloc-dce
